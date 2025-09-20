@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import DashboardLineChart from "@/components/dashboard/charts/DashboardLineChart.vue";
 import {ChartLine} from "lucide-vue-next";
+import DashboardLineChart from "@/components/dashboard/charts/DashboardLineChart.vue";
 
 const data = [
   {
@@ -38,7 +38,7 @@ const data = [
 </script>
 
 <template>
-  <DashboardLineChart :icon="ChartLine" name="Player Activity 24h" :data="data" :colors="['var(--prison)', 'var(--skyblock)']"/>
+  <DashboardLineChart :icon="ChartLine" name="Player Activity 24h" :data="data" :categories="['prison', 'skyblock']" :colors="['var(--prison)', 'var(--skyblock)']"/>
 </template>
 
 <style scoped>

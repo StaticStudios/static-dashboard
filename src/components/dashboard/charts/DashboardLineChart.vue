@@ -1,41 +1,44 @@
 <script setup lang="ts">
 
-import {CurveType} from "@unovis/ts";
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 import {LineChart} from "@/components/ui/chart-line";
 import type {FunctionalComponent} from "vue";
+import {CurveType} from "@unovis/ts";
 
 defineProps<{
   icon?: FunctionalComponent
   name: string,
   data: any[],
+  categories: string[],
   colors: string[]
 }>()
+
 </script>
 
 <template>
-  <div class="bg-background/75 h-70 w-150 rounded-2xl">
-    <div class="pl-4">
-      <div class="flex  items-center h-10">
-        <component v-if="icon" :is="icon" class="h-5 w-5"/>
-        <div class="text-l font-semibold pl-4">
-          {{ name }}
-        </div>
-      </div>
-      <LineChart class="h-50"
-                 :data="data"
-                 :categories="['prison', 'skyblock']"
-                 index="time"
-                 :colors="colors"
-                 :curve-type="CurveType.Step"
-                 :x-formatter="(tick)=> {
+<Card class="h-75 w-150 bg-card/75">
+ <CardHeader>
+   <CardTitle class="flex items-center">
+     <component v-if="icon" :is="icon" class="h-5 w-5"/>
+     <div class="pl-3">
+       {{name}}
+     </div>
+   </CardTitle>
+   <CardContent>
+     <LineChart class="h-50"
+                :data="data"
+                :categories="categories"
+                index="time"
+                :colors="colors"
+                :curve-type="CurveType.Step"
+                :x-formatter="(tick)=> {
                  return String(tick).padStart(2, '0') + ':00'
                }"
-      />
-    </div>
-    </div>
-
+     />
+   </CardContent>
+ </CardHeader>
+</Card>
 </template>
 
 <style scoped>
-
 </style>
