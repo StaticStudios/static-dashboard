@@ -39,7 +39,7 @@ const route = useRoute()
   <Sidebar collapsible="icon">
     <SidebarHeader>
       <div class="flex items-center gap-2">
-        <img src="../../../public/logo.png" alt="logo" class="h-14 w-14">
+        <img src="/logo.png" alt="logo" class="h-14 w-14">
         <div>
           <div class="text-xl">StaticStudios</div>
           <div class="text-[0.75rem]">Admin Dashboard</div>
@@ -56,7 +56,6 @@ const route = useRoute()
                 <RouterLink :to="item.url">
                   <component :is="item.icon"/>
                   <span>{{ item.title }}</span>
-                  <span> {{route.path.split('/')[1]}}</span>
                 </RouterLink>
               </SidebarMenuButton>
             </SidebarMenuItem>

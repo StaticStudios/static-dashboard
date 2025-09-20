@@ -5,12 +5,12 @@ import PlayerCountOverview from "@/components/dashboard/PlayerCountOverview.vue"
 
 <template>
   <div class="pl-10 pt-5">
-    <div class="text-4xl">
+    <div class="text-4xl font-semibold">
       Network Overview
     </div>
-    <div class="pt-15"/>
+    <div class="pt-12"/>
     <PlayerCountOverview/>
-    <div class="pt-10"/>
+    <div class="pt-7"/>
     <PlayerCountChart/>
 
   </div>

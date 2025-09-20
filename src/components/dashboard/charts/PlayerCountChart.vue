@@ -38,7 +38,7 @@ const data = [
 </script>
 
 <template>
-  <DashboardLineChart :icon="ChartLine" name="Player Activity 24h" :data="data" :categories="['prison', 'skyblock']" :colors="['var(--prison)', 'var(--skyblock)']"/>
+  <DashboardLineChart :icon="ChartLine" name="Player Activity (24h)" :data="data" :categories="['prison', 'skyblock']" :colors="['var(--prison)', 'var(--skyblock)']"/>
 </template>
 
 <style scoped>
