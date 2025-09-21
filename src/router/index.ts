@@ -1,7 +1,11 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import {createRouter, createWebHistory} from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import PlayersView from "@/views/PlayersView.vue";
 import PunishmentsView from "@/views/PunishmentsView.vue";
+import {useUserStore} from '@/stores/UserStore';
+
+import LoginView from "@/views/LoginView.vue";
+
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -20,8 +24,22 @@ const router = createRouter({
             path: '/punishments',
             name: 'Punishments',
             component: PunishmentsView
+        },
+        {
+            path: '/login',
+            name: 'Login',
+            component: LoginView
         }
     ],
+})
+
+router.beforeEach((to, from, next) => {
+    const userStore = useUserStore()
+    if (!userStore.isAuthenticated && to.name !== 'Login') {
+        next({name: 'Login'})
+    } else {
+        next()
+    }
 })
 
 export default router
