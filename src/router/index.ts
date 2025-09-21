@@ -33,7 +33,7 @@ const router = createRouter({
     ],
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _, next) => {
     const userStore = useUserStore()
     if (!userStore.isAuthenticated() && to.name !== 'Login') {
         next({name: 'Login'})
