@@ -11,7 +11,7 @@ mode.value = "dark"
 
 <template>
   <div class="minecraft-gradient h-screen">
-    <SidebarProvider default-open v-if="userStore.isAuthenticated">
+    <SidebarProvider default-open v-if="userStore.isAuthenticated()">
       <DashboardSidebar/>
       <RouterView/>
     </SidebarProvider>

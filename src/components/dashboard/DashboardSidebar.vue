@@ -2,7 +2,7 @@
 
 import {
   Sidebar,
-  SidebarContent,
+  SidebarContent, SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarHeader,
@@ -10,8 +10,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem
 } from "@/components/ui/sidebar";
-import {Home, Scale, User} from "lucide-vue-next";
+import {Home, LogOut, Scale, User} from "lucide-vue-next";
 import {useRoute} from "vue-router";
+import {useUserStore} from "@/stores/UserStore.ts";
+import {Button} from "@/components/ui/button";
+import router from "@/router";
+
+const userStore = useUserStore()
 
 const items = [
   {
@@ -32,6 +37,11 @@ const items = [
 ]
 
 const route = useRoute()
+
+function logout() {
+  userStore.logout()
+  router.push('/login')
+}
 
 </script>
 
@@ -63,6 +73,21 @@ const route = useRoute()
         </SidebarGroupContent>
       </SidebarGroup>
     </SidebarContent>
+    <SidebarFooter>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <div class="p-5 flex items-center">
+            <div>{{userStore.name}}</div>
+            <div class="ml-auto">
+              <Button variant="outline" size="sm" v-on:click="logout">
+                <LogOut/>
+                Logout
+              </Button>
+            </div>
+          </div>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    </SidebarFooter>
   </Sidebar>
 </template>
 
