@@ -3,7 +3,7 @@ import HomeView from '../views/HomeView.vue'
 import PlayersView from "@/views/PlayersView.vue";
 import PunishmentsView from "@/views/PunishmentsView.vue";
 import LoginView from "@/views/LoginView.vue";
-import {useAuth} from "@clerk/vue";
+import {useAuth, useSession} from "@clerk/vue";
 import {waitForClerkJsLoaded} from "@/lib/utils"
 
 const router = createRouter({
@@ -36,11 +36,14 @@ const router = createRouter({
 })
 
 router.beforeEach(async (to, _, next) => {
-    const { isSignedIn, isLoaded } = useAuth();
+    const { isSignedIn, isLoaded, sessionClaims, getToken } = useAuth();
 
     if (!isLoaded.value) {
         await waitForClerkJsLoaded();
     }
+
+    console.log()
+    console.log()
 
     if (!to.meta.public && !isSignedIn.value) {
         return next({ path: '/login' })

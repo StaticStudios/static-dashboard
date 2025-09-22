@@ -3,17 +3,18 @@ import {useAuth, useUser} from "@clerk/vue";
 
 export const useUserStore = defineStore("userStore", () => {
     const user = useUser();
+    const {getToken } = useAuth();
 
     function getUsername() {
         return user.user.value?.fullName
     }
 
-    function getToken() {
-        return useAuth().getToken.value.name;
+    async function getAuthToken() {
+        return await getToken.value({template: 'test'})
     }
 
     return {
         getUsername,
-        getToken
+        getAuthToken
     }
 })
