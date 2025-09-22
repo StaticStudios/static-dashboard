@@ -1,60 +1,19 @@
 import {defineStore} from "pinia";
-import {ref} from "vue";
-
-function isExpired(date: number) {
-    if (date === 0) {
-        return true
-    }
-    if (isNaN(date)) {
-        return true
-    }
-    if (date === undefined) {
-        return true
-    }
-    return Date.now() - date > 1000 * 60 * 60 * 24 * 7
-}
+import {useAuth, useUser} from "@clerk/vue";
 
 export const useUserStore = defineStore("userStore", () => {
-    const name = ref("")
-    const id = ref("")
-    const token = ref("")
-    const refreshToken = ref("")
-    let lastModified = ref(Date.now())
+    const user = useUser();
 
-    function isAuthenticated() {
-        if (isExpired(lastModified.value)) {
-            return false
-        }
-
-        return !!token.value
+    function getUsername() {
+        return user.user.value?.fullName
     }
 
-    function login(newName: string, newId: string, newToken: string, nreRefreshToken: string) {
-        name.value = newName
-        id.value = newId
-        token.value = newToken
-        refreshToken.value = nreRefreshToken
-        lastModified.value = Date.now()
-    }
-
-    function logout() {
-        lastModified.value = 0
-        token.value = ""
-        refreshToken.value = ""
-        name.value = ""
-        id.value = ""
+    function getToken() {
+        return useAuth().getToken.value.name;
     }
 
     return {
-        name,
-        id,
-        token,
-        refreshToken,
-        lastModified,
-        isAuthenticated,
-        login,
-        logout
+        getUsername,
+        getToken
     }
-}, {
-    persist: true,
 })

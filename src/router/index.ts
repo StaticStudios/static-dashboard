@@ -2,10 +2,9 @@ import {createRouter, createWebHistory} from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import PlayersView from "@/views/PlayersView.vue";
 import PunishmentsView from "@/views/PunishmentsView.vue";
-import {useUserStore} from '@/stores/UserStore';
-
 import LoginView from "@/views/LoginView.vue";
-
+import {useAuth} from "@clerk/vue";
+import {waitForClerkJsLoaded} from "@/lib/utils"
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
@@ -28,20 +27,31 @@ const router = createRouter({
         {
             path: '/login',
             name: 'Login',
-            component: LoginView
+            component: LoginView,
+            meta: {
+                public: true
+            }
         }
     ],
 })
 
-router.beforeEach((to, _, next) => {
-    const userStore = useUserStore()
-    if (!userStore.isAuthenticated() && to.name !== 'Login') {
-        next({name: 'Login'})
-    } else if (userStore.isAuthenticated() && to.name === 'Login') {
-        next({name: 'Home'})
-    } else {
-        next()
+router.beforeEach(async (to, _, next) => {
+    const { isSignedIn, isLoaded } = useAuth();
+
+    if (!isLoaded.value) {
+        await waitForClerkJsLoaded();
     }
+
+    if (!to.meta.public && !isSignedIn.value) {
+        return next({ path: '/login' })
+    }
+
+    if (to.path === '/login' && isSignedIn.value) {
+        return next({ path: '/' })
+    }
+
+    next()
 })
+
 
 export default router
