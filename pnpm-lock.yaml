@@ -59,6 +59,9 @@ importers:
       vue:
         specifier: ^3.5.21
         version: 3.5.21(typescript@5.8.3)
+      vue-axios:
+        specifier: ^3.5.2
+        version: 3.5.2(axios@1.12.2)(vue@3.5.21(typescript@5.8.3))
       vue-router:
         specifier: '4'
         version: 4.5.1(vue@3.5.21(typescript@5.8.3))
@@ -2088,6 +2091,12 @@ packages:
 
   vt-pbf@3.1.3:
     resolution: {integrity: sha512-2LzDFzt0mZKZ9IpVF2r69G9bXaP2Q2sArJCmcCgvfTdCCZzSyz4aCLoQyUilu37Ll56tCblIZrXFIjNUpGIlmA==}
+
+  vue-axios@3.5.2:
+    resolution: {integrity: sha512-GP+dct7UlAWkl1qoP3ppw0z6jcSua5/IrMpjB5O8bh089iIiJ+hdxPYH2NPEpajlYgkW5EVMP95ttXWdas1O0g==}
+    peerDependencies:
+      axios: '*'
+      vue: ^3.0.0 || ^2.0.0
 
   vue-demi@0.14.10:
     resolution: {integrity: sha512-nMZBOwuzabUO0nLgIcc6rycZEebF6eeUfaiQx9+WSk8e29IbLvPU9feI6tqW4kTo3hvoYAJkMh8n8D0fuISphg==}
@@ -4172,6 +4181,11 @@ snapshots:
       '@mapbox/point-geometry': 0.1.0
       '@mapbox/vector-tile': 1.3.1
       pbf: 3.3.0
+
+  vue-axios@3.5.2(axios@1.12.2)(vue@3.5.21(typescript@5.8.3)):
+    dependencies:
+      axios: 1.12.2
+      vue: 3.5.21(typescript@5.8.3)
 
   vue-demi@0.14.10(vue@3.5.21(typescript@5.8.3)):
     dependencies:

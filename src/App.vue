@@ -12,11 +12,13 @@ mode.value = "dark"
 
 <template>
   <div class="minecraft-gradient h-screen">
-    <SidebarProvider default-open v-if="isSignedIn">
-      <DashboardSidebar/>
-      <RouterView/>
-    </SidebarProvider>
-    <RouterView v-else/>
+    <suspense> <!-- todo dont suspense the whole app -->
+      <SidebarProvider default-open v-if="isSignedIn">
+        <DashboardSidebar/>
+        <RouterView/>
+      </SidebarProvider>
+      <RouterView v-else/>
+    </suspense>
   </div>
 </template>
 

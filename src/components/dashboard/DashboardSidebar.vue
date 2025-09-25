@@ -14,7 +14,7 @@ import {
 import {Home, LogOut, Scale, User} from "lucide-vue-next";
 import {useRoute} from "vue-router";
 import {useUserStore} from "@/stores/UserStore.ts";
-import {UserButton, SignOutButton} from "@clerk/vue";
+import { SignOutButton} from "@clerk/vue";
 import {Button} from "@/components/ui/button";
 
 const userStore = useUserStore()
