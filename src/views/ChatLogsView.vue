@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {ref} from "vue"
+import {ref, onMounted, onUnmounted} from "vue"
 import {useRouter} from "vue-router"
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card"
 import {Button} from "@/components/ui/button"
@@ -7,6 +7,33 @@ import {Input} from "@/components/ui/input"
 import {X} from "lucide-vue-next"
 
 const router = useRouter()
+let ws: WebSocket | null = null
+
+onMounted(() => {
+    ws = new WebSocket("ws://localhost:8080/ws")
+
+    ws.onopen = () => {
+        console.log("WebSocket connected")
+    }
+
+    ws.onmessage = (event) => {
+        console.log("WebSocket message:", event.data)
+    }
+
+    ws.onerror = (error) => {
+        console.error("WebSocket error:", error)
+    }
+
+    ws.onclose = () => {
+        console.log("WebSocket disconnected")
+    }
+})
+
+onUnmounted(() => {
+    if (ws) {
+        ws.close()
+    }
+})
 
 function toLocalDatetimeString(date: Date): string {
     const offset = date.getTimezoneOffset()
