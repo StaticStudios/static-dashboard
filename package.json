@@ -11,6 +11,7 @@
   "dependencies": {
     "@clerk/themes": "^2.4.19",
     "@clerk/vue": "^1.13.1",
+    "@stomp/stompjs": "^7.3.0",
     "@tailwindcss/vite": "^4.1.13",
     "@unovis/ts": "^1.6.1",
     "@unovis/vue": "^1.6.1",

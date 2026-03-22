@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import {onMounted, ref} from "vue"
+import {onMounted, onUnmounted, ref} from "vue"
 import axios from "axios"
 import {Button} from "@/components/ui/button"
 import {Skeleton} from "@/components/ui/skeleton"
 import ChatLogEntryComponent from "@/components/chatlog/ChatLogEntry.vue"
-import {useUserStore} from "@/stores/UserStore.ts";
+import {useUserStore} from "@/stores/UserStore.ts"
+import {Client} from "@stomp/stompjs"
 
 const page = ref(0)
 const size = 10
@@ -14,6 +15,7 @@ const loadingMore = ref(false)
 const error = ref<string | null>(null)
 const hasMore = ref(true)
 const userStore = useUserStore()
+let stompClient: Client | null = null
 
 async function fetchChatLogs() {
   loading.value = true
@@ -30,7 +32,15 @@ async function fetchChatLogs() {
       },
       headers
     })
-    chatLogs.value = response.data.content.reverse()
+    const content = response.data.content.map((entry: any) => {
+      if (entry.recipientName) {
+        return {...entry, type: "private_message"}
+      } else {
+        return {...entry, type: "chat_message"}
+      }
+    })
+    console.log(content)
+    chatLogs.value = content.reverse()
     hasMore.value = response.data.last === false
   } catch (err: any) {
     error.value = err.message || "Failed to fetch chat logs"
@@ -55,7 +65,13 @@ async function loadMore() {
       },
       headers
     })
-    chatLogs.value = [...response.data.content.reverse(), ...chatLogs.value]
+    const content = response.data.content.map((entry: any) => {
+      if (entry.recipientName) {
+        return {...entry, type: "private_message"}
+      }
+      return entry
+    })
+    chatLogs.value = [...content.reverse(), ...chatLogs.value]
     hasMore.value = response.data.last === false
     page.value++
   } catch (err: any) {
@@ -66,9 +82,41 @@ async function loadMore() {
   }
 }
 
+async function connectWebSocket() {
+  const token = await userStore.getAuthToken()
+
+  stompClient = new Client({
+    brokerURL: "ws://localhost:8080/ws",
+    connectHeaders: {
+      Authorization: `Bearer ${token}`
+    },
+    onConnect: () => {
+      console.log("WebSocket connected")
+      stompClient?.subscribe("/topic/chat", (message) => {
+        const chatLog = JSON.parse(message.body)
+        const entry = chatLog.recipientName ? {...chatLog, type: "private_message"} : chatLog
+        chatLogs.value.push(entry)
+      })
+    },
+    onStompError: (frame) => {
+      console.error("STOMP error:", frame)
+    }
+  })
+
+  stompClient.activate()
+}
+
 onMounted(() => {
   fetchChatLogs()
+  connectWebSocket()
 })
+
+onUnmounted(() => {
+  if (stompClient) {
+    stompClient.deactivate()
+  }
+})
+
 </script>
 
 <template>
@@ -91,14 +139,14 @@ onMounted(() => {
       No chat logs found.
     </div>
 
-    <div v-else>
+    <div v-else class="flex flex-col h-[calc(100vh-12rem)]">
       <div v-if="hasMore" class="flex justify-center pb-4">
         <Button @click="loadMore" :disabled="loadingMore" variant="secondary">
           {{ loadingMore ? "Loading..." : "Load More" }}
         </Button>
       </div>
 
-      <div class="border rounded-lg divide-y divide-border overflow-hidden bg-card">
+      <div class="border rounded-lg divide-y divide-border overflow-y-auto bg-card flex-1">
         <ChatLogEntryComponent
             v-for="entry in chatLogs"
             :key="entry.id"

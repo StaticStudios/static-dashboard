@@ -8,6 +8,7 @@ interface BaseChatLog {
 export interface ChatMessage extends BaseChatLog {
     type: "chat_message"
     server: string
+    serverGroup: string
     chatroom: string
     channelId: string | null
 }
