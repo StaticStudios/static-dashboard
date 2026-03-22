@@ -11,7 +11,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem
 } from "@/components/ui/sidebar";
-import {Home, LogOut, Scale, User} from "lucide-vue-next";
+import {Home, LogOut, MessageSquare, Scale, User} from "lucide-vue-next";
 import {useRoute} from "vue-router";
 import {useUserStore} from "@/stores/UserStore.ts";
 import { SignOutButton} from "@clerk/vue";
@@ -34,6 +34,11 @@ const items = [
     title: 'Punishments',
     url: '/punishments',
     icon: Scale
+  },
+  {
+    title: 'Chat Logs',
+    url: '/chatlogs',
+    icon: MessageSquare
   }
 ]
 

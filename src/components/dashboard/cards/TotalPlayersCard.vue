@@ -13,7 +13,7 @@ const headers = {
   "Authorization": `Bearer ${await userStore.getAuthToken()}`
 }
 
-axios.get("http://localhost:8080/api/v1/internal/dashboard/player_count", {
+axios.get("${API_BASE_URL}/api/v1/internal/dashboard/player_count", {
   headers: headers
 })
     .then(response => {
