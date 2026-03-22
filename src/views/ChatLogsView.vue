@@ -8,6 +8,7 @@ import ChatLogEntryComponent from "@/components/chatlog/ChatLogEntry.vue"
 import {useUserStore} from "@/stores/UserStore.ts"
 import {Client} from "@stomp/stompjs"
 import {X} from "lucide-vue-next"
+import {API_BASE_URL, WS_BASE_URL} from "@/config/api"
 
 const page = ref(0)
 const size = 50
@@ -84,7 +85,7 @@ async function fetchChatLogs() {
   }
 
   try {
-    const response = await axios.get(`http://localhost:8080/api/v1/internal/chatlogs`, {
+    const response = await axios.get(`${API_BASE_URL}/api/v1/internal/chatlogs`, {
       params: {
         page: page.value,
         limit: size
@@ -109,7 +110,7 @@ async function loadMore() {
   }
 
   try {
-    const response = await axios.get(`http://localhost:8080/api/v1/internal/chatlogs`, {
+    const response = await axios.get(`${API_BASE_URL}/api/v1/internal/chatlogs`, {
       params: {
         page: page.value + 1,
         limit: size
@@ -137,7 +138,7 @@ async function connectWebSocket() {
   const token = await userStore.getAuthToken()
 
   stompClient = new Client({
-    brokerURL: "ws://localhost:8080/ws",
+    brokerURL: `${WS_BASE_URL}/ws`,
     connectHeaders: {
       Authorization: `Bearer ${token}`
     },
