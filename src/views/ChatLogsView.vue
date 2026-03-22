@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, onMounted, onUnmounted, ref} from "vue"
+import {computed, onMounted, onUnmounted, ref, nextTick, watch} from "vue"
 import axios from "axios"
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
@@ -7,7 +7,7 @@ import {Skeleton} from "@/components/ui/skeleton"
 import ChatLogEntryComponent from "@/components/chatlog/ChatLogEntry.vue"
 import {useUserStore} from "@/stores/UserStore.ts"
 import {Client} from "@stomp/stompjs"
-import {X} from "lucide-vue-next"
+import {X, ArrowDown} from "lucide-vue-next"
 import {API_BASE_URL, WS_BASE_URL} from "@/config/api"
 
 const page = ref(0)
@@ -19,6 +19,10 @@ const error = ref<string | null>(null)
 const hasMore = ref(true)
 const userStore = useUserStore()
 let stompClient: Client | null = null
+
+const chatContainer = ref<HTMLElement | null>(null)
+const autoScroll = ref(true)
+const showScrollButton = ref(false)
 
 const userFilter = ref<string[]>([])
 const userInput = ref("")
@@ -134,6 +138,41 @@ async function loadMore() {
   }
 }
 
+function scrollToBottom() {
+  if (chatContainer.value) {
+    chatContainer.value.scrollTop = chatContainer.value.scrollHeight
+  }
+}
+
+function handleScroll() {
+  if (!chatContainer.value) return
+
+  const { scrollTop, scrollHeight, clientHeight } = chatContainer.value
+  const distanceFromBottom = scrollHeight - scrollTop - clientHeight
+
+  // If user is within 100px of bottom, enable auto-scroll
+  if (distanceFromBottom < 100) {
+    autoScroll.value = true
+    showScrollButton.value = false
+  } else {
+    autoScroll.value = false
+    showScrollButton.value = true
+  }
+}
+
+function scrollToBottomClick() {
+  autoScroll.value = true
+  showScrollButton.value = false
+  scrollToBottom()
+}
+
+watch(chatLogs, async () => {
+  if (autoScroll.value) {
+    await nextTick()
+    scrollToBottom()
+  }
+}, { deep: true })
+
 async function connectWebSocket() {
   const token = await userStore.getAuthToken()
 
@@ -158,9 +197,11 @@ async function connectWebSocket() {
   stompClient.activate()
 }
 
-onMounted(() => {
-  fetchChatLogs()
+onMounted(async () => {
+  await fetchChatLogs()
   connectWebSocket()
+  await nextTick()
+  scrollToBottom()
 })
 
 onUnmounted(() => {
@@ -261,20 +302,43 @@ onUnmounted(() => {
           No chat logs found.
         </div>
 
-        <div v-else class="flex flex-col h-[calc(100vh-12rem)]">
+        <div v-else class="flex flex-col h-[calc(100vh-12rem)] relative">
           <div v-if="hasMore" class="flex justify-center pb-4">
             <Button @click="loadMore" :disabled="loadingMore" variant="secondary">
               {{ loadingMore ? "Loading..." : "Load More" }}
             </Button>
           </div>
 
-          <div class="border rounded-lg divide-y divide-border overflow-y-auto bg-card flex-1 custom-scrollbar">
+          <div
+            ref="chatContainer"
+            @scroll="handleScroll"
+            class="border rounded-lg divide-y divide-border overflow-y-auto bg-card flex-1 custom-scrollbar"
+          >
             <ChatLogEntryComponent
                 v-for="entry in filteredChatLogs"
                 :key="entry.id"
                 :entry="entry"
             />
           </div>
+
+          <!-- Scroll to Bottom Button -->
+          <Transition
+            enter-active-class="transition ease-out duration-200"
+            enter-from-class="opacity-0 translate-y-2"
+            enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition ease-in duration-150"
+            leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 translate-y-2"
+          >
+            <Button
+              v-if="showScrollButton"
+              @click="scrollToBottomClick"
+              class="absolute bottom-4 right-4 rounded-full shadow-lg"
+              size="icon"
+            >
+              <ArrowDown class="size-4"/>
+            </Button>
+          </Transition>
         </div>
       </div>
     </div>
