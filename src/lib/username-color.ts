@@ -1,4 +1,4 @@
-const PALETTE = [
+const PALETTE: string[] = [
     "#e06c75",
     "#61afef",
     "#98c379",
@@ -32,13 +32,15 @@ function hashString(str: string): number {
 const colorCache = new Map<string, string>()
 
 export function getUsernameColor(username: string): string {
-    if (colorCache.has(username)) {
-        return colorCache.get(username)!
-    }
 
-    const index = hashString(username) % PALETTE.length
-    const color = PALETTE[index]
-    colorCache.set(username, color)
-    return color
+    return PALETTE[0];
+    // if (colorCache.has(username)) {
+    //     return colorCache.get(username)!
+    // }
+    //
+    // const index = hashString(username) % PALETTE.length
+    // const color = PALETTE[index]
+    // colorCache.set(username, color)
+    // return color
 }
 

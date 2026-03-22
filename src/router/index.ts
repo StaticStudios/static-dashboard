@@ -4,7 +4,6 @@ import PlayersView from "@/views/PlayersView.vue";
 import PunishmentsView from "@/views/PunishmentsView.vue";
 import LoginView from "@/views/LoginView.vue";
 import ChatLogsView from "@/views/ChatLogsView.vue";
-import ChatLogMessagesView from "@/views/ChatLogMessagesView.vue";
 import {useAuth} from "@clerk/vue";
 import {waitForClerkJsLoaded} from "@/lib/utils"
 
@@ -30,11 +29,6 @@ const router = createRouter({
             path: '/chatlogs',
             name: 'ChatLogs',
             component: ChatLogsView
-        },
-        {
-            path: '/chatlogs/view',
-            name: 'ChatLogMessages',
-            component: ChatLogMessagesView
         },
         {
             path: '/login',

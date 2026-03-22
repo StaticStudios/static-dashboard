@@ -1,194 +1,111 @@
 <script setup lang="ts">
-import {ref, onMounted, onUnmounted} from "vue"
-import {useRouter} from "vue-router"
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card"
+import {onMounted, ref} from "vue"
+import axios from "axios"
 import {Button} from "@/components/ui/button"
-import {Input} from "@/components/ui/input"
-import {X} from "lucide-vue-next"
+import {Skeleton} from "@/components/ui/skeleton"
+import ChatLogEntryComponent from "@/components/chatlog/ChatLogEntry.vue"
+import {useUserStore} from "@/stores/UserStore.ts";
 
-const router = useRouter()
-let ws: WebSocket | null = null
+const page = ref(0)
+const size = 10
+const chatLogs = ref<any[]>([])
+const loading = ref(false)
+const loadingMore = ref(false)
+const error = ref<string | null>(null)
+const hasMore = ref(true)
+const userStore = useUserStore()
+
+async function fetchChatLogs() {
+  loading.value = true
+  error.value = null
+  let headers = {
+    "Authorization": `Bearer ${await userStore.getAuthToken()}`
+  }
+
+  try {
+    const response = await axios.get(`http://localhost:8080/api/v1/internal/chatlogs`, {
+      params: {
+        page: page.value,
+        limit: size
+      },
+      headers
+    })
+    chatLogs.value = response.data.content.reverse()
+    hasMore.value = response.data.last === false
+  } catch (err: any) {
+    error.value = err.message || "Failed to fetch chat logs"
+    console.error("Error fetching chat logs:", err)
+  } finally {
+    loading.value = false
+  }
+}
+
+async function loadMore() {
+  loadingMore.value = true
+  error.value = null
+  let headers = {
+    "Authorization": `Bearer ${await userStore.getAuthToken()}`
+  }
+
+  try {
+    const response = await axios.get(`http://localhost:8080/api/v1/internal/chatlogs`, {
+      params: {
+        page: page.value + 1,
+        limit: size
+      },
+      headers
+    })
+    chatLogs.value = [...response.data.content.reverse(), ...chatLogs.value]
+    hasMore.value = response.data.last === false
+    page.value++
+  } catch (err: any) {
+    error.value = err.message || "Failed to load more chat logs"
+    console.error("Error loading more chat logs:", err)
+  } finally {
+    loadingMore.value = false
+  }
+}
 
 onMounted(() => {
-    ws = new WebSocket("ws://localhost:8080/ws")
-
-    ws.onopen = () => {
-        console.log("WebSocket connected")
-    }
-
-    ws.onmessage = (event) => {
-        console.log("WebSocket message:", event.data)
-    }
-
-    ws.onerror = (error) => {
-        console.error("WebSocket error:", error)
-    }
-
-    ws.onclose = () => {
-        console.log("WebSocket disconnected")
-    }
+  fetchChatLogs()
 })
-
-onUnmounted(() => {
-    if (ws) {
-        ws.close()
-    }
-})
-
-function toLocalDatetimeString(date: Date): string {
-    const offset = date.getTimezoneOffset()
-    const local = new Date(date.getTime() - offset * 60_000)
-    return local.toISOString().slice(0, 16)
-}
-
-const chatPlayerInput = ref("")
-const chatPlayerNames = ref<string[]>([])
-const pmPlayerInput = ref("")
-const pmPlayerNames = ref<string[]>([])
-const startDate = ref("2022-03-01T00:00")
-const endDate = ref(toLocalDatetimeString(new Date()))
-
-function addChatPlayer() {
-    const name = chatPlayerInput.value.trim()
-    if (name && !chatPlayerNames.value.includes(name)) {
-        chatPlayerNames.value.push(name)
-        chatPlayerInput.value = ""
-    }
-}
-
-function removeChatPlayer(name: string) {
-    chatPlayerNames.value = chatPlayerNames.value.filter(n => n !== name)
-}
-
-function addPmPlayer() {
-    const name = pmPlayerInput.value.trim()
-    if (name && !pmPlayerNames.value.includes(name)) {
-        pmPlayerNames.value.push(name)
-        pmPlayerInput.value = ""
-    }
-}
-
-function removePmPlayer(name: string) {
-    pmPlayerNames.value = pmPlayerNames.value.filter(n => n !== name)
-}
-
-function handleKeydown(event: KeyboardEvent, addFn: () => void) {
-    if (event.key === "Enter") {
-        addFn()
-    }
-}
-
-function viewChatLogs() {
-    const query: Record<string, string> = {}
-
-    if (chatPlayerNames.value.length > 0) {
-        query.chatPlayerNames = chatPlayerNames.value.join(",")
-    }
-    if (pmPlayerNames.value.length > 0) {
-        query.privateMessagePlayerNames = pmPlayerNames.value.join(",")
-    }
-    if (startDate.value) {
-        query.start = new Date(startDate.value).toISOString()
-    }
-    if (endDate.value) {
-        query.end = new Date(endDate.value).toISOString()
-    }
-
-    router.push({name: "ChatLogMessages", query})
-}
-
-const hasPlayers = ref(false)
-
-function updateHasPlayers() {
-    hasPlayers.value = chatPlayerNames.value.length > 0 || pmPlayerNames.value.length > 0
-}
 </script>
 
 <template>
-    <div class="px-4 pt-5 sm:px-10 max-w-3xl">
-        <div class="text-3xl sm:text-4xl font-semibold">Chat Logs</div>
-        <div class="pt-8"/>
-
-        <Card>
-            <CardHeader>
-                <CardTitle>Search Configuration</CardTitle>
-                <CardDescription>Configure which players' messages to view</CardDescription>
-            </CardHeader>
-            <CardContent class="space-y-6">
-                <div class="space-y-2">
-                    <label class="text-sm font-medium">Chat Message Players</label>
-                    <div class="flex gap-2">
-                        <Input
-                            v-model="chatPlayerInput"
-                            placeholder="Enter player name..."
-                            @keydown="handleKeydown($event, addChatPlayer)"
-                        />
-                        <Button @click="addChatPlayer" variant="secondary">Add</Button>
-                    </div>
-                    <div v-if="chatPlayerNames.length" class="flex flex-wrap gap-1.5 pt-1">
-                        <span
-                            v-for="name in chatPlayerNames"
-                            :key="name"
-                            class="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-1 text-sm"
-                        >
-                            {{ name }}
-                            <button
-                                class="hover:text-destructive-foreground transition-colors"
-                                @click="removeChatPlayer(name); updateHasPlayers()"
-                            >
-                                <X class="size-3"/>
-                            </button>
-                        </span>
-                    </div>
-                </div>
-
-                <div class="space-y-2">
-                    <label class="text-sm font-medium">Private Message Players</label>
-                    <div class="flex gap-2">
-                        <Input
-                            v-model="pmPlayerInput"
-                            placeholder="Enter player name..."
-                            @keydown="handleKeydown($event, addPmPlayer)"
-                        />
-                        <Button @click="addPmPlayer" variant="secondary">Add</Button>
-                    </div>
-                    <div v-if="pmPlayerNames.length" class="flex flex-wrap gap-1.5 pt-1">
-                        <span
-                            v-for="name in pmPlayerNames"
-                            :key="name"
-                            class="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-1 text-sm"
-                        >
-                            {{ name }}
-                            <button
-                                class="hover:text-destructive-foreground transition-colors"
-                                @click="removePmPlayer(name); updateHasPlayers()"
-                            >
-                                <X class="size-3"/>
-                            </button>
-                        </span>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="space-y-2">
-                        <label class="text-sm font-medium">Start Date</label>
-                        <Input type="datetime-local" v-model="startDate"/>
-                    </div>
-                    <div class="space-y-2">
-                        <label class="text-sm font-medium">End Date</label>
-                        <Input type="datetime-local" v-model="endDate"/>
-                    </div>
-                </div>
-
-                <Button
-                    class="w-full"
-                    @click="viewChatLogs"
-                    :disabled="chatPlayerNames.length === 0 && pmPlayerNames.length === 0"
-                >
-                    View Chat Logs
-                </Button>
-            </CardContent>
-        </Card>
+  <div class="px-4 pt-5 sm:px-10 w-full max-w-5xl">
+    <div class="flex items-center gap-3">
+      <div class="text-3xl sm:text-4xl font-semibold">Chat Logs</div>
     </div>
+
+    <div class="pt-6"/>
+
+    <div v-if="loading" class="space-y-2">
+      <Skeleton v-for="i in 12" :key="i" class="h-8 w-full"/>
+    </div>
+
+    <div v-else-if="error" class="text-destructive-foreground text-sm">
+      {{ error }}
+    </div>
+
+    <div v-else-if="chatLogs.length === 0" class="text-muted-foreground text-sm">
+      No chat logs found.
+    </div>
+
+    <div v-else>
+      <div v-if="hasMore" class="flex justify-center pb-4">
+        <Button @click="loadMore" :disabled="loadingMore" variant="secondary">
+          {{ loadingMore ? "Loading..." : "Load More" }}
+        </Button>
+      </div>
+
+      <div class="border rounded-lg divide-y divide-border overflow-hidden bg-card">
+        <ChatLogEntryComponent
+            v-for="entry in chatLogs"
+            :key="entry.id"
+            :entry="entry"
+        />
+      </div>
+    </div>
+  </div>
 </template>
 
