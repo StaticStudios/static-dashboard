@@ -6,92 +6,93 @@ import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/compon
 import {ArrowRight, Hash, Lock, MessageSquare, ShieldAlert} from "lucide-vue-next"
 
 const props = defineProps<{
-    entry: ChatLogEntry
+  entry: ChatLogEntry
 }>()
 
 const isStaffChat = computed(() =>
     props.entry.type === "chat_message" && props.entry.chatroom === "staff"
 )
-const senderColor = computed(() => getUsernameColor(props.entry.senderName))
+const senderColor = computed(() => getUsernameColor())
 
 const recipientColor = computed(() => {
-    if (props.entry.type === "private_message") {
-        return getUsernameColor(props.entry.recipientName)
-    }
-    return ""
+  if (props.entry.type === "private_message") {
+    return getUsernameColor()
+  }
+  return ""
 })
 
 const formattedTime = computed(() => {
-    const date = new Date(props.entry.timestamp)
-    return date.toLocaleString(undefined, {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-    })
+  const date = new Date(props.entry.timestamp)
+  return date.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
 })
 
 const fullTime = computed(() => {
-    return new Date(props.entry.timestamp).toLocaleString()
+  return new Date(props.entry.timestamp).toLocaleString()
 })
 
 const tooltipLines = computed(() => {
-    const lines: string[] = []
-    lines.push(fullTime.value)
-    if (props.entry.type === "chat_message") {
-        lines.push(`Server: ${props.entry.server}`)
-        lines.push(`Chatroom: ${props.entry.chatroom}`)
-        if (props.entry.channelId) {
-            lines.push(`Channel: ${props.entry.channelId}`)
-        }
+  const lines: string[] = []
+  lines.push(fullTime.value)
+  if (props.entry.type === "chat_message") {
+    lines.push(`Server: ${props.entry.server}`)
+    lines.push(`Chatroom: ${props.entry.chatroom}`)
+    if (props.entry.channelId) {
+      lines.push(`Channel: ${props.entry.channelId}`)
     }
-    lines.push(`ID: ${props.entry.id}`)
-    return lines
+  }
+  lines.push(`ID: ${props.entry.id}`)
+  return lines
 })
 </script>
 
 <template>
-    <TooltipProvider :delay-duration="200">
-        <Tooltip>
-            <TooltipTrigger as-child>
-                <div class="group flex flex-col sm:flex-row sm:items-start gap-0.5 sm:gap-2 px-3 py-2 sm:py-1.5 hover:bg-accent/60 rounded transition-colors">
+  <TooltipProvider :delay-duration="200">
+    <Tooltip>
+      <TooltipTrigger as-child>
+        <div
+            class="group flex flex-col sm:flex-row sm:items-start gap-0.5 sm:gap-2 px-3 py-2 sm:py-1.5 hover:bg-accent/60 rounded transition-colors">
                     <span class="text-xs text-muted-foreground shrink-0 pt-0.5 sm:min-w-[130px]" :title="fullTime">
                         {{ formattedTime }}
                     </span>
 
-                    <div v-if="entry.type === 'chat_message'" class="flex flex-wrap items-center gap-1.5 min-w-0">
-                        <ShieldAlert v-if="isStaffChat" class="size-3.5 shrink-0 text-yellow-500"/>
-                        <MessageSquare v-else class="size-3.5 shrink-0 text-muted-foreground"/>
-                        <span class="font-semibold shrink-0" :style="{color: senderColor}">
+          <div v-if="entry.type === 'chat_message'" class="flex flex-wrap items-center gap-1.5 min-w-0">
+            <ShieldAlert v-if="isStaffChat" class="size-3.5 shrink-0 text-yellow-500"/>
+            <MessageSquare v-else class="size-3.5 shrink-0 text-muted-foreground"/>
+            <span class="font-semibold shrink-0" :style="{color: senderColor}">
                             {{ entry.senderName }}
                         </span>
-                        <span class="text-muted-foreground shrink-0">›</span>
-                        <span class="break-all min-w-0">{{ entry.content }}</span>
-                    </div>
+            <span class="text-muted-foreground shrink-0">›</span>
+            <span class="break-all min-w-0">{{ entry.content }}</span>
+          </div>
 
-                    <div v-else class="flex flex-wrap items-center gap-1.5 min-w-0">
-                        <Lock class="size-3.5 shrink-0 text-muted-foreground"/>
-                        <span class="font-semibold shrink-0" :style="{color: senderColor}">
+          <div v-else class="flex flex-wrap items-center gap-1.5 min-w-0">
+            <Lock class="size-3.5 shrink-0 text-muted-foreground"/>
+            <span class="font-semibold shrink-0" :style="{color: senderColor}">
                             {{ entry.senderName }}
                         </span>
-                        <ArrowRight class="size-3.5 shrink-0 text-muted-foreground"/>
-                        <span class="font-semibold shrink-0" :style="{color: recipientColor}">
+            <ArrowRight class="size-3.5 shrink-0 text-muted-foreground"/>
+            <span class="font-semibold shrink-0" :style="{color: recipientColor}">
                             {{ entry.recipientName }}
                         </span>
-                        <span class="text-muted-foreground shrink-0">›</span>
-                        <span class="break-all min-w-0">{{ entry.content }}</span>
-                    </div>
-                </div>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-                <div class="flex flex-col gap-0.5 text-xs">
-                    <div v-for="line in tooltipLines" :key="line" class="flex items-center gap-1">
-                        <Hash v-if="line.startsWith('Channel:')" class="size-3"/>
-                        {{ line }}
-                    </div>
-                </div>
-            </TooltipContent>
-        </Tooltip>
-    </TooltipProvider>
+            <span class="text-muted-foreground shrink-0">›</span>
+            <span class="break-all min-w-0">{{ entry.content }}</span>
+          </div>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="right">
+        <div class="flex flex-col gap-0.5 text-xs">
+          <div v-for="line in tooltipLines" :key="line" class="flex items-center gap-1">
+            <Hash v-if="line.startsWith('Channel:')" class="size-3"/>
+            {{ line }}
+          </div>
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
 </template>
 

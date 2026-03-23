@@ -21,19 +21,19 @@ const PALETTE: string[] = [
     "#9ece6a",
 ]
 
-function hashString(str: string): number {
-    let hash = 5381
-    for (let i = 0; i < str.length; i++) {
-        hash = ((hash << 5) + hash + str.charCodeAt(i)) | 0
-    }
-    return Math.abs(hash)
-}
+// function hashString(str: string): number {
+//     let hash = 5381
+//     for (let i = 0; i < str.length; i++) {
+//         hash = ((hash << 5) + hash + str.charCodeAt(i)) | 0
+//     }
+//     return Math.abs(hash)
+// }
+//
+// const colorCache = new Map<string, string>()
 
-const colorCache = new Map<string, string>()
+export function getUsernameColor(): string {
 
-export function getUsernameColor(username: string): string {
-
-    return PALETTE[0];
+    return PALETTE[0] as string;
     // if (colorCache.has(username)) {
     //     return colorCache.get(username)!
     // }
