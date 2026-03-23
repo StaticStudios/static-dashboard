@@ -21,7 +21,8 @@ pinia.use(piniaPluginPersistedstate)
 createApp(App)
     .use(clerkPlugin, {
         publishableKey: PUBLISHABLE_KEY,
-        appearance: shadcn
+        appearance: shadcn,
+        clerkJSUrl: 'https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js'
     })
     .use(router)
     .use(pinia)

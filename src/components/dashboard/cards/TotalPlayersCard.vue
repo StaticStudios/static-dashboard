@@ -5,6 +5,7 @@ import {User} from "lucide-vue-next";
 import axios from "axios";
 import {ref} from "vue";
 import {useUserStore} from "@/stores/UserStore.ts";
+import {API_BASE_URL} from "@/config/api.ts";
 
 const playerCount = ref(0)
 const userStore = useUserStore()
@@ -13,7 +14,7 @@ const headers = {
   "Authorization": `Bearer ${await userStore.getAuthToken()}`
 }
 
-axios.get("${API_BASE_URL}/api/v1/internal/dashboard/player_count", {
+axios.get(`${API_BASE_URL}/api/v1/internal/dashboard/player_count`, {
   headers: headers
 })
     .then(response => {
