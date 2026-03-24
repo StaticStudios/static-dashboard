@@ -1,4 +1,4 @@
-const PALETTE: string[] = [
+const PALETTE: Array<string> = [
     "#e06c75",
     "#61afef",
     "#98c379",
@@ -18,29 +18,29 @@ const PALETTE: string[] = [
     "#bb9af7",
     "#73daca",
     "#ff9e64",
-    "#9ece6a",
+    "#9ece6a"
 ]
 
-// function hashString(str: string): number {
-//     let hash = 5381
-//     for (let i = 0; i < str.length; i++) {
-//         hash = ((hash << 5) + hash + str.charCodeAt(i)) | 0
-//     }
-//     return Math.abs(hash)
-// }
-//
-// const colorCache = new Map<string, string>()
+function hashString(str: string): number {
+    let hash = 5381
+    for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) + hash + str.charCodeAt(i)) | 0
+    }
+    return Math.abs(hash)
+}
 
-export function getUsernameColor(): string {
+const colorCache = new Map<string, string>()
 
-    return PALETTE[0] as string;
-    // if (colorCache.has(username)) {
-    //     return colorCache.get(username)!
-    // }
-    //
-    // const index = hashString(username) % PALETTE.length
-    // const color = PALETTE[index]
-    // colorCache.set(username, color)
-    // return color
+export function getUsernameColor(username: string): string {
+
+    if (colorCache.has(username)) {
+        return colorCache.get(username)!
+    }
+
+    const index = hashString(username ?? "") % PALETTE.length
+    const color = PALETTE[index]!
+
+    colorCache.set(username, color)
+    return color
 }
 

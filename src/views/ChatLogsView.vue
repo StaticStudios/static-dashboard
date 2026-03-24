@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import {computed, onMounted, onUnmounted, ref, nextTick, watch} from "vue"
+import {computed, nextTick, onMounted, onUnmounted, ref, watch} from "vue"
 import axios from "axios"
 import {Button} from "@/components/ui/button"
-import {Input} from "@/components/ui/input"
 import {Skeleton} from "@/components/ui/skeleton"
 import ChatLogEntryComponent from "@/components/chatlog/ChatLogEntry.vue"
 import {useUserStore} from "@/stores/UserStore.ts"
 import {Client} from "@stomp/stompjs"
-import {X, ArrowDown} from "lucide-vue-next"
+import {ArrowDown, X} from "lucide-vue-next"
 import {API_BASE_URL, WS_BASE_URL} from "@/config/api"
+import Combobox from "@/components/custom/combobox/combobox.vue";
 
 const page = ref(0)
 const size = 50
@@ -25,31 +25,58 @@ const autoScroll = ref(true)
 const showScrollButton = ref(false)
 
 const userFilter = ref<string[]>([])
-const userInput = ref("")
 const serverGroupFilter = ref<string[]>([])
-const serverGroupInput = ref("")
+
+// Compute available options for autocomplete
+const availableUsers = computed(() => {
+  const users = new Set<string>()
+  chatLogs.value.forEach(entry => {
+    if (entry.senderName) {
+      users.add(entry.senderName)
+    }
+  })
+  return Array.from(users).sort()
+})
+
+const availableServerGroups = computed(() => {
+  const groups = new Set<string>()
+  chatLogs.value.forEach(entry => {
+    if (entry.type === "chat_message" && entry.serverGroup) {
+      groups.add(entry.serverGroup)
+    }
+  })
+  return Array.from(groups).sort()
+})
 
 const filteredChatLogs = computed(() => {
   let filtered = chatLogs.value
 
   if (userFilter.value.length > 0) {
-    filtered = filtered.filter(entry => userFilter.value.includes(entry.senderName))
+    filtered = filtered.filter(entry => {
+      const lowerFilters = userFilter.value.map(f => f.toLowerCase())
+      return lowerFilters.includes(entry.senderName?.toLowerCase())
+    })
   }
 
   if (serverGroupFilter.value.length > 0) {
-    filtered = filtered.filter(entry =>
-      entry.type === "chat_message" && serverGroupFilter.value.includes(entry.serverGroup)
-    )
+    filtered = filtered.filter(entry => {
+      if (entry.type !== "chat_message") return false
+      const lowerFilters = serverGroupFilter.value.map(f => f.toLowerCase())
+      return lowerFilters.includes(entry.serverGroup?.toLowerCase())
+    })
   }
 
   return filtered
 })
 
-function addUserFilter() {
-  const name = userInput.value.trim()
-  if (name && !userFilter.value.includes(name)) {
-    userFilter.value.push(name)
-    userInput.value = ""
+function addUserFilter(name: string) {
+  if (name) {
+    // Check for case-insensitive duplicates
+    const lowerName = name.toLowerCase()
+    const hasDuplicate = userFilter.value.some(f => f.toLowerCase() === lowerName)
+    if (!hasDuplicate) {
+      userFilter.value.push(name)
+    }
   }
 }
 
@@ -57,28 +84,19 @@ function removeUserFilter(name: string) {
   userFilter.value = userFilter.value.filter(n => n !== name)
 }
 
-function addServerGroupFilter() {
-  const name = serverGroupInput.value.trim()
-  if (name && !serverGroupFilter.value.includes(name)) {
-    serverGroupFilter.value.push(name)
-    serverGroupInput.value = ""
+function addServerGroupFilter(name: string) {
+  if (name) {
+    // Check for case-insensitive duplicates
+    const lowerName = name.toLowerCase()
+    const hasDuplicate = serverGroupFilter.value.some(f => f.toLowerCase() === lowerName)
+    if (!hasDuplicate) {
+      serverGroupFilter.value.push(name)
+    }
   }
 }
 
 function removeServerGroupFilter(name: string) {
   serverGroupFilter.value = serverGroupFilter.value.filter(n => n !== name)
-}
-
-function handleUserKeydown(event: KeyboardEvent) {
-  if (event.key === "Enter") {
-    addUserFilter()
-  }
-}
-
-function handleServerGroupKeydown(event: KeyboardEvent) {
-  if (event.key === "Enter") {
-    addServerGroupFilter()
-  }
 }
 
 async function fetchChatLogs() {
@@ -147,7 +165,7 @@ function scrollToBottom() {
 function handleScroll() {
   if (!chatContainer.value) return
 
-  const { scrollTop, scrollHeight, clientHeight } = chatContainer.value
+  const {scrollTop, scrollHeight, clientHeight} = chatContainer.value
   const distanceFromBottom = scrollHeight - scrollTop - clientHeight
 
   // If user is within 100px of bottom, enable auto-scroll
@@ -171,7 +189,7 @@ watch(chatLogs, async () => {
     await nextTick()
     scrollToBottom()
   }
-}, { deep: true })
+}, {deep: true})
 
 async function connectWebSocket() {
   const token = await userStore.getAuthToken()
@@ -228,25 +246,17 @@ onUnmounted(() => {
           <div class="border rounded-lg p-3 bg-card">
             <div class="space-y-2">
               <label class="text-sm font-medium">Users</label>
-              <div class="flex gap-2">
-                <Input
-                  v-model="userInput"
-                  placeholder="Add user..."
-                  @keydown="handleUserKeydown"
-                  class="text-sm"
-                />
-                <Button @click="addUserFilter" variant="secondary" size="sm">Add</Button>
-              </div>
+              <Combobox :items="availableUsers" hint="Add Users..." @select="addUserFilter"/>
               <div v-if="userFilter.length" class="flex flex-wrap gap-1.5 pt-1">
                 <span
-                  v-for="name in userFilter"
-                  :key="name"
-                  class="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-1 text-sm"
+                    v-for="name in userFilter"
+                    :key="name"
+                    class="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-1 text-sm"
                 >
                   {{ name }}
                   <button
-                    class="hover:text-destructive-foreground transition-colors"
-                    @click="removeUserFilter(name)"
+                      class="hover:text-destructive-foreground transition-colors"
+                      @click="removeUserFilter(name)"
                   >
                     <X class="size-3"/>
                   </button>
@@ -259,25 +269,17 @@ onUnmounted(() => {
           <div class="border rounded-lg p-3 bg-card">
             <div class="space-y-2">
               <label class="text-sm font-medium">Server Groups</label>
-              <div class="flex gap-2">
-                <Input
-                  v-model="serverGroupInput"
-                  placeholder="Add server group..."
-                  @keydown="handleServerGroupKeydown"
-                  class="text-sm"
-                />
-                <Button @click="addServerGroupFilter" variant="secondary" size="sm">Add</Button>
-              </div>
+              <Combobox :items="availableServerGroups" hint="Add Server Group..." @select="addServerGroupFilter"/>
               <div v-if="serverGroupFilter.length" class="flex flex-wrap gap-1.5 pt-1">
                 <span
-                  v-for="name in serverGroupFilter"
-                  :key="name"
-                  class="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-1 text-sm"
+                    v-for="name in serverGroupFilter"
+                    :key="name"
+                    class="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-1 text-sm"
                 >
                   {{ name }}
                   <button
-                    class="hover:text-destructive-foreground transition-colors"
-                    @click="removeServerGroupFilter(name)"
+                      class="hover:text-destructive-foreground transition-colors"
+                      @click="removeServerGroupFilter(name)"
                   >
                     <X class="size-3"/>
                   </button>
@@ -310,9 +312,9 @@ onUnmounted(() => {
           </div>
 
           <div
-            ref="chatContainer"
-            @scroll="handleScroll"
-            class="border rounded-lg divide-y divide-border overflow-y-auto bg-card flex-1 custom-scrollbar"
+              ref="chatContainer"
+              @scroll="handleScroll"
+              class="border rounded-lg divide-y divide-border overflow-y-auto bg-card flex-1 custom-scrollbar"
           >
             <ChatLogEntryComponent
                 v-for="entry in filteredChatLogs"
@@ -323,18 +325,18 @@ onUnmounted(() => {
 
           <!-- Scroll to Bottom Button -->
           <Transition
-            enter-active-class="transition ease-out duration-200"
-            enter-from-class="opacity-0 translate-y-2"
-            enter-to-class="opacity-100 translate-y-0"
-            leave-active-class="transition ease-in duration-150"
-            leave-from-class="opacity-100 translate-y-0"
-            leave-to-class="opacity-0 translate-y-2"
+              enter-active-class="transition ease-out duration-200"
+              enter-from-class="opacity-0 translate-y-2"
+              enter-to-class="opacity-100 translate-y-0"
+              leave-active-class="transition ease-in duration-150"
+              leave-from-class="opacity-100 translate-y-0"
+              leave-to-class="opacity-0 translate-y-2"
           >
             <Button
-              v-if="showScrollButton"
-              @click="scrollToBottomClick"
-              class="absolute bottom-4 right-4 rounded-full shadow-lg"
-              size="icon"
+                v-if="showScrollButton"
+                @click="scrollToBottomClick"
+                class="absolute bottom-4 right-4 rounded-full shadow-lg"
+                size="icon"
             >
               <ArrowDown class="size-4"/>
             </Button>

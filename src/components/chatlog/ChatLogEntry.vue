@@ -12,11 +12,11 @@ const props = defineProps<{
 const isStaffChat = computed(() =>
     props.entry.type === "chat_message" && props.entry.chatroom === "staff"
 )
-const senderColor = computed(() => getUsernameColor())
+const senderColor = computed(() => getUsernameColor(props.entry.senderName))
 
 const recipientColor = computed(() => {
   if (props.entry.type === "private_message") {
-    return getUsernameColor()
+    return getUsernameColor(props.entry.recipientName)
   }
   return ""
 })
@@ -56,13 +56,13 @@ const tooltipLines = computed(() => {
       <TooltipTrigger as-child>
         <div
             class="group flex flex-col sm:flex-row sm:items-start gap-0.5 sm:gap-2 px-3 py-2 sm:py-1.5 hover:bg-accent/60 rounded transition-colors">
-                    <span class="text-xs text-muted-foreground shrink-0 pt-0.5 sm:min-w-[130px]" :title="fullTime">
+                    <span class="text-xs text-muted-foreground shrink-0 pt-0.5 sm:min-w-[50px]" :title="fullTime">
                         {{ formattedTime }}
                     </span>
 
-          <div v-if="entry.type === 'chat_message'" class="flex flex-wrap items-center gap-1.5 min-w-0">
+          <div v-if="entry.type === 'chat_message'" class="flex flex-wrap items-center gap-1.5 min-w-0 ">
             <ShieldAlert v-if="isStaffChat" class="size-3.5 shrink-0 text-yellow-500"/>
-            <MessageSquare v-else class="size-3.5 shrink-0 text-muted-foreground"/>
+            <MessageSquare v-else class="size-3.5 shrink-0 text-muted-foreground "/>
             <span class="font-semibold shrink-0" :style="{color: senderColor}">
                             {{ entry.senderName }}
                         </span>
