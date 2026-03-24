@@ -11,7 +11,7 @@ import {API_BASE_URL, WS_BASE_URL} from "@/config/api"
 import Combobox from "@/components/custom/combobox/combobox.vue";
 
 const page = ref(0)
-const size = 10
+const size = 50
 const chatLogs = ref<any[]>([])
 const loading = ref(false)
 const loadingMore = ref(false)
