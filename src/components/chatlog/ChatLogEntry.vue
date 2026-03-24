@@ -1,22 +1,31 @@
 <script setup lang="ts">
-import type {ChatLogEntry} from "@/types/chatlog"
+import type {ChatLogEntry, ChatMessage, PrivateMessage} from "@/types/chatlog"
 import {getUsernameColor} from "@/lib/username-color"
 import {computed} from "vue"
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip"
-import {ArrowRight, Hash, Lock, MessageSquare, ShieldAlert} from "lucide-vue-next"
+import {ArrowRight, Hash, Lock, MessageSquare, ShieldAlert, Swords, TreePalm} from "lucide-vue-next"
 
 const props = defineProps<{
   entry: ChatLogEntry
 }>()
 
 const isStaffChat = computed(() =>
-    props.entry.type === "chat_message" && props.entry.chatroom === "staff"
+    props.entry.type === "staff_message"
 )
+
+const isIslandChat = computed(() =>
+    props.entry.type === "island_message"
+)
+
+const isGangChat = computed(() =>
+    props.entry.type === "gang_message"
+)
+
 const senderColor = computed(() => getUsernameColor(props.entry.senderName))
 
 const recipientColor = computed(() => {
   if (props.entry.type === "private_message") {
-    return getUsernameColor(props.entry.recipientName)
+    return getUsernameColor((props.entry as PrivateMessage).recipientName)
   }
   return ""
 })
@@ -38,11 +47,12 @@ const fullTime = computed(() => {
 const tooltipLines = computed(() => {
   const lines: string[] = []
   lines.push(fullTime.value)
-  if (props.entry.type === "chat_message") {
-    lines.push(`Server: ${props.entry.server}`)
-    lines.push(`Chatroom: ${props.entry.chatroom}`)
-    if (props.entry.channelId) {
-      lines.push(`Channel: ${props.entry.channelId}`)
+  if (props.entry.type !== "private_message") {
+    const entry = props.entry as ChatMessage
+    lines.push(`Server: ${entry.server}`)
+    lines.push(`Chatroom: ${entry.chatroom}`)
+    if (entry.channelId !== "null") {
+      lines.push(`Channel: ${entry.channelId}`)
     }
   }
   lines.push(`ID: ${props.entry.id}`)
@@ -60,8 +70,10 @@ const tooltipLines = computed(() => {
                         {{ formattedTime }}
                     </span>
 
-          <div v-if="entry.type === 'chat_message'" class="flex flex-wrap items-center gap-1.5 min-w-0 ">
+          <div v-if="entry.type !== 'private_message'" class="flex flex-wrap items-center gap-1.5 min-w-0 ">
             <ShieldAlert v-if="isStaffChat" class="size-3.5 shrink-0 text-yellow-500"/>
+            <TreePalm v-else-if="isIslandChat" class="size-3.5 shrink-0 text-muted-foreground"/>
+            <Swords v-else-if="isGangChat" class="size-3.5 shrink-0 text-muted-foreground"/>
             <MessageSquare v-else class="size-3.5 shrink-0 text-muted-foreground "/>
             <span class="font-semibold shrink-0" :style="{color: senderColor}">
                             {{ entry.senderName }}
@@ -77,7 +89,7 @@ const tooltipLines = computed(() => {
                         </span>
             <ArrowRight class="size-3.5 shrink-0 text-muted-foreground"/>
             <span class="font-semibold shrink-0" :style="{color: recipientColor}">
-                            {{ entry.recipientName }}
+                            {{ (entry as PrivateMessage).recipientName }}
                         </span>
             <span class="text-muted-foreground shrink-0">›</span>
             <span class="break-all min-w-0">{{ entry.content }}</span>

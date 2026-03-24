@@ -6,7 +6,7 @@ interface BaseChatLog {
 }
 
 export interface ChatMessage extends BaseChatLog {
-    type: "chat_message"
+    type: string
     server: string
     serverGroup: string
     chatroom: string
@@ -19,11 +19,3 @@ export interface PrivateMessage extends BaseChatLog {
 }
 
 export type ChatLogEntry = ChatMessage | PrivateMessage
-
-export interface ChatLogParams {
-    chatPlayerNames: string[]
-    privateMessagePlayerNames: string[]
-    start: string
-    end: string
-}
-

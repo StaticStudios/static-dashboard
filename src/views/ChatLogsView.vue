@@ -19,6 +19,8 @@ const error = ref<string | null>(null)
 const hasMore = ref(true)
 const userStore = useUserStore()
 let stompClient: Client | null = null
+let tokenRefreshInterval: number | null = null
+let chatSubscription: any = null
 
 const chatContainer = ref<HTMLElement | null>(null)
 const autoScroll = ref(true)
@@ -191,6 +193,17 @@ watch(chatLogs, async () => {
   }
 }, {deep: true})
 
+async function reconnectWebSocket() {
+  if (chatSubscription) {
+    chatSubscription.unsubscribe()
+    chatSubscription = null
+  }
+  if (stompClient) {
+    await stompClient.deactivate()
+  }
+  await connectWebSocket()
+}
+
 async function connectWebSocket() {
   const token = await userStore.getAuthToken()
 
@@ -201,18 +214,31 @@ async function connectWebSocket() {
     },
     onConnect: () => {
       console.log("WebSocket connected")
-      stompClient?.subscribe("/topic/chat", (message) => {
+      chatSubscription = stompClient?.subscribe("/topic/chat", (message) => {
         const chatLog = JSON.parse(message.body)
         const entry = chatLog.recipientName ? {...chatLog, type: "private_message"} : chatLog
+        console.log(entry)
         chatLogs.value.push(entry)
       })
     },
     onStompError: (frame) => {
       console.error("STOMP error:", frame)
-    }
+    },
+    onDisconnect: () => {
+      console.log("WebSocket disconnected")
+    },
   })
 
   stompClient.activate()
+
+  // Refresh token and reconnect every 50 minutes (tokens typically expire after 1 hour)
+  if (tokenRefreshInterval) {
+    clearInterval(tokenRefreshInterval)
+  }
+  tokenRefreshInterval = setInterval(async () => {
+    console.log("Refreshing WebSocket connection with new token")
+    await reconnectWebSocket()
+  }, 50 * 1000) as unknown as number
 }
 
 onMounted(async () => {
@@ -223,8 +249,14 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  if (chatSubscription) {
+    chatSubscription.unsubscribe()
+  }
   if (stompClient) {
     stompClient.deactivate()
+  }
+  if (tokenRefreshInterval) {
+    clearInterval(tokenRefreshInterval)
   }
 })
 
