@@ -11,7 +11,7 @@ import {API_BASE_URL, WS_BASE_URL} from "@/config/api"
 import Combobox from "@/components/custom/combobox/combobox.vue";
 
 const page = ref(0)
-const size = 50
+const size = 10
 const chatLogs = ref<any[]>([])
 const loading = ref(false)
 const loadingMore = ref(false)
@@ -28,6 +28,7 @@ const showScrollButton = ref(false)
 
 const userFilter = ref<string[]>([])
 const serverGroupFilter = ref<string[]>([])
+const typeFilter = ref<string[]>([])
 
 // Compute available options for autocomplete
 const availableUsers = computed(() => {
@@ -50,6 +51,16 @@ const availableServerGroups = computed(() => {
   return Array.from(groups).sort()
 })
 
+const availableTypes = computed(() => {
+  const types = new Set<string>()
+  chatLogs.value.forEach(entry => {
+    if (entry.type) {
+      types.add(entry.type)
+    }
+  })
+  return Array.from(types).sort()
+})
+
 const filteredChatLogs = computed(() => {
   let filtered = chatLogs.value
 
@@ -65,6 +76,13 @@ const filteredChatLogs = computed(() => {
       if (entry.type !== "chat_message") return false
       const lowerFilters = serverGroupFilter.value.map(f => f.toLowerCase())
       return lowerFilters.includes(entry.serverGroup?.toLowerCase())
+    })
+  }
+
+  if (typeFilter.value.length > 0) {
+    filtered = filtered.filter(entry => {
+      const lowerFilters = typeFilter.value.map(f => f.toLowerCase())
+      return lowerFilters.includes(entry.type?.toLowerCase())
     })
   }
 
@@ -101,6 +119,21 @@ function removeServerGroupFilter(name: string) {
   serverGroupFilter.value = serverGroupFilter.value.filter(n => n !== name)
 }
 
+function addTypeFilter(name: string) {
+  if (name) {
+    // Check for case-insensitive duplicates
+    const lowerName = name.toLowerCase()
+    const hasDuplicate = typeFilter.value.some(f => f.toLowerCase() === lowerName)
+    if (!hasDuplicate) {
+      typeFilter.value.push(name)
+    }
+  }
+}
+
+function removeTypeFilter(name: string) {
+  typeFilter.value = typeFilter.value.filter(n => n !== name)
+}
+
 async function fetchChatLogs() {
   loading.value = true
   error.value = null
@@ -109,15 +142,36 @@ async function fetchChatLogs() {
   }
 
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/v1/internal/chatlogs`, {
-      params: {
-        page: page.value,
-        limit: size
-      },
-      headers
-    })
-    chatLogs.value = response.data.content.reverse()
-    hasMore.value = response.data.last === false
+    const [chatResponse, privateResponse] = await Promise.all([
+      axios.get(`${API_BASE_URL}/api/v1/internal/chatlogs/chat`, {
+        params: {
+          page: page.value,
+          limit: size
+        },
+        headers
+      }),
+      axios.get(`${API_BASE_URL}/api/v1/internal/chatlogs/private`, {
+        params: {
+          page: page.value,
+          limit: size
+        },
+        headers
+      })
+    ])
+
+    const chatEntries = chatResponse.data.content
+    const privateEntries = privateResponse.data.content.map((entry: any) => ({
+      ...entry,
+      type: "private_message"
+    }))
+
+    // Merge and sort by timestamp
+    const allEntries = [...chatEntries, ...privateEntries].sort((a, b) =>
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    )
+
+    chatLogs.value = allEntries
+    hasMore.value = chatResponse.data.last === false || privateResponse.data.last === false
   } catch (err: any) {
     error.value = err.message || "Failed to fetch chat logs"
     console.error("Error fetching chat logs:", err)
@@ -134,21 +188,36 @@ async function loadMore() {
   }
 
   try {
-    const response = await axios.get(`${API_BASE_URL}/api/v1/internal/chatlogs`, {
-      params: {
-        page: page.value + 1,
-        limit: size
-      },
-      headers
-    })
-    const content = response.data.content.map((entry: any) => {
-      if (entry.recipientName) {
-        return {...entry, type: "private_message"}
-      }
-      return entry
-    })
-    chatLogs.value = [...content.reverse(), ...chatLogs.value]
-    hasMore.value = response.data.last === false
+    const [chatResponse, privateResponse] = await Promise.all([
+      axios.get(`${API_BASE_URL}/api/v1/internal/chatlogs/chat`, {
+        params: {
+          page: page.value + 1,
+          limit: size
+        },
+        headers
+      }),
+      axios.get(`${API_BASE_URL}/api/v1/internal/chatlogs/private`, {
+        params: {
+          page: page.value + 1,
+          limit: size
+        },
+        headers
+      })
+    ])
+
+    const chatEntries = chatResponse.data.content
+    const privateEntries = privateResponse.data.content.map((entry: any) => ({
+      ...entry,
+      type: "private_message"
+    }))
+
+    // Merge and sort by timestamp
+    const newEntries = [...chatEntries, ...privateEntries].sort((a, b) =>
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    )
+
+    chatLogs.value = [...newEntries, ...chatLogs.value]
+    hasMore.value = chatResponse.data.last === false || privateResponse.data.last === false
     page.value++
   } catch (err: any) {
     error.value = err.message || "Failed to load more chat logs"
@@ -312,6 +381,29 @@ onUnmounted(() => {
                   <button
                       class="hover:text-destructive-foreground transition-colors"
                       @click="removeServerGroupFilter(name)"
+                  >
+                    <X class="size-3"/>
+                  </button>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Type Filter -->
+          <div class="border rounded-lg p-3 bg-card">
+            <div class="space-y-2">
+              <label class="text-sm font-medium">Type</label>
+              <Combobox :items="availableTypes" hint="Add Type..." @select="addTypeFilter"/>
+              <div v-if="typeFilter.length" class="flex flex-wrap gap-1.5 pt-1">
+                <span
+                    v-for="name in typeFilter"
+                    :key="name"
+                    class="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-1 text-sm"
+                >
+                  {{ name }}
+                  <button
+                      class="hover:text-destructive-foreground transition-colors"
+                      @click="removeTypeFilter(name)"
                   >
                     <X class="size-3"/>
                   </button>
