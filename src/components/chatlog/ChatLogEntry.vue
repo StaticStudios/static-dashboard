@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type {ChatLogEntry, ChatMessage, PrivateMessage} from "@/types/chatlog"
+import type {ChatLogEntry} from "@/types/chatlog"
 import {getUsernameColor} from "@/lib/username-color"
 import {computed} from "vue"
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from "@/components/ui/tooltip"
@@ -24,10 +24,7 @@ const isGangChat = computed(() =>
 const senderColor = computed(() => getUsernameColor(props.entry.senderName))
 
 const recipientColor = computed(() => {
-  if (props.entry.type === "private_message") {
-    return getUsernameColor((props.entry as PrivateMessage).recipientName)
-  }
-  return ""
+  return getUsernameColor(props.entry.recipientName)
 })
 
 const formattedTime = computed(() => {
@@ -47,8 +44,8 @@ const fullTime = computed(() => {
 const tooltipLines = computed(() => {
   const lines: string[] = []
   lines.push(fullTime.value)
+  const entry = props.entry
   if (props.entry.type !== "private_message") {
-    const entry = props.entry as ChatMessage
     lines.push(`Server: ${entry.server}`)
     lines.push(`Chatroom: ${entry.chatroom}`)
     if (entry.channelId !== "null") {
@@ -89,7 +86,7 @@ const tooltipLines = computed(() => {
                         </span>
             <ArrowRight class="size-3.5 shrink-0 text-muted-foreground"/>
             <span class="font-semibold shrink-0" :style="{color: recipientColor}">
-                            {{ (entry as PrivateMessage).recipientName }}
+                            {{ entry.recipientName }}
                         </span>
             <span class="text-muted-foreground shrink-0">›</span>
             <span class="break-all min-w-0">{{ entry.content }}</span>

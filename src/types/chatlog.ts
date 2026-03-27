@@ -1,21 +1,12 @@
-interface BaseChatLog {
+export interface ChatLogEntry {
     id: string
     senderName: string
+    recipientName: string
     content: string
     timestamp: string
-}
-
-export interface ChatMessage extends BaseChatLog {
-    type: string
     server: string
     serverGroup: string
     chatroom: string
     channelId: string | null
+    type: string
 }
-
-export interface PrivateMessage extends BaseChatLog {
-    type: "private_message"
-    recipientName: string
-}
-
-export type ChatLogEntry = ChatMessage | PrivateMessage

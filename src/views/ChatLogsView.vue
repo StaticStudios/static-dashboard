@@ -9,6 +9,7 @@ import {Client} from "@stomp/stompjs"
 import {ArrowDown, X} from "lucide-vue-next"
 import {API_BASE_URL, WS_BASE_URL} from "@/config/api"
 import Combobox from "@/components/custom/combobox/combobox.vue";
+import type {ChatLogEntry} from "@/types/chatlog.ts";
 
 const page = ref(0)
 const size = 50
@@ -44,7 +45,7 @@ const availableUsers = computed(() => {
 const availableServerGroups = computed(() => {
   const groups = new Set<string>()
   chatLogs.value.forEach(entry => {
-    if (entry.type === "chat_message" && entry.serverGroup) {
+    if (entry.serverGroup) {
       groups.add(entry.serverGroup)
     }
   })
@@ -73,7 +74,6 @@ const filteredChatLogs = computed(() => {
 
   if (serverGroupFilter.value.length > 0) {
     filtered = filtered.filter(entry => {
-      if (entry.type !== "chat_message") return false
       const lowerFilters = serverGroupFilter.value.map(f => f.toLowerCase())
       return lowerFilters.includes(entry.serverGroup?.toLowerCase())
     })
@@ -142,36 +142,21 @@ async function fetchChatLogs() {
   }
 
   try {
-    const [chatResponse, privateResponse] = await Promise.all([
-      axios.get(`${API_BASE_URL}/api/v1/internal/chatlogs/chat`, {
-        params: {
-          page: page.value,
-          limit: size
-        },
-        headers
-      }),
-      axios.get(`${API_BASE_URL}/api/v1/internal/chatlogs/private`, {
-        params: {
-          page: page.value,
-          limit: size
-        },
-        headers
-      })
-    ])
+    const chatResponse = await axios.get(`${API_BASE_URL}/api/v1/internal/chatlogs/chat`, {
+      params: {
+        page: page.value,
+        limit: size
+      },
+      headers
+    })
 
-    const chatEntries = chatResponse.data.content
-    const privateEntries = privateResponse.data.content.map((entry: any) => ({
-      ...entry,
-      type: "private_message"
-    }))
+    const chatEntries: ChatLogEntry[] = chatResponse.data.content
 
-    // Merge and sort by timestamp
-    const allEntries = [...chatEntries, ...privateEntries].sort((a, b) =>
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    )
+    chatEntries.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
 
-    chatLogs.value = allEntries
-    hasMore.value = chatResponse.data.last === false || privateResponse.data.last === false
+    chatLogs.value = chatEntries
+    console.log(chatEntries)
+    hasMore.value = chatResponse.data.last === false
   } catch (err: any) {
     error.value = err.message || "Failed to fetch chat logs"
     console.error("Error fetching chat logs:", err)
@@ -188,36 +173,23 @@ async function loadMore() {
   }
 
   try {
-    const [chatResponse, privateResponse] = await Promise.all([
-      axios.get(`${API_BASE_URL}/api/v1/internal/chatlogs/chat`, {
-        params: {
-          page: page.value + 1,
-          limit: size
-        },
-        headers
-      }),
-      axios.get(`${API_BASE_URL}/api/v1/internal/chatlogs/private`, {
-        params: {
-          page: page.value + 1,
-          limit: size
-        },
-        headers
-      })
-    ])
+    const chatResponse = await axios.get(`${API_BASE_URL}/api/v1/internal/chatlogs/chat`, {
+      params: {
+        page: page.value + 1,
+        limit: size
+      },
+      headers
+    })
 
-    const chatEntries = chatResponse.data.content
-    const privateEntries = privateResponse.data.content.map((entry: any) => ({
-      ...entry,
-      type: "private_message"
-    }))
+    const chatEntries: ChatLogEntry[] = chatResponse.data.content
 
     // Merge and sort by timestamp
-    const newEntries = [...chatEntries, ...privateEntries].sort((a, b) =>
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    const newEntries = chatEntries.sort((a, b) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     )
 
     chatLogs.value = [...newEntries, ...chatLogs.value]
-    hasMore.value = chatResponse.data.last === false || privateResponse.data.last === false
+    hasMore.value = chatResponse.data.last === false
     page.value++
   } catch (err: any) {
     error.value = err.message || "Failed to load more chat logs"
