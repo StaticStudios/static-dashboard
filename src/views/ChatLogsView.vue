@@ -194,7 +194,6 @@ async function fetchChatLogs() {
     chatEntries.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
 
     chatLogs.value = chatEntries
-    console.log(chatEntries)
     hasMore.value = chatResponse.data.last === false
   } catch (err: any) {
     error.value = err.message || "Failed to fetch chat logs"
