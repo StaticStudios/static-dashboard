@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {CheckIcon, ChevronsUpDownIcon} from 'lucide-vue-next'
+import {CheckIcon, ChevronsUpDownIcon, Loader2} from 'lucide-vue-next'
 import {computed, ref} from 'vue'
 import {cn} from '@/lib/utils'
 import {Button} from '@/components/ui/button'
@@ -8,11 +8,13 @@ import {Popover, PopoverContent, PopoverTrigger,} from '@/components/ui/popover'
 
 const props = defineProps<{
   items: Array<string>,
-  hint: string
+  hint: string,
+  loading?: boolean
 }>()
 
 const emit = defineEmits<{
   select: [value: string]
+  search: [query: string]
 }>()
 
 const open = ref(false)
@@ -20,6 +22,11 @@ const value = ref('')
 const selectedItems = computed(() =>
     props.items.find(item => item === value.value),
 )
+
+function handleSearchInput(e: Event) {
+  emit('search', (e.target as HTMLInputElement).value)
+}
+
 function selectItem(selectedValue: string) {
   value.value = selectedValue === value.value ? '' : selectedValue
   open.value = false
@@ -44,9 +51,14 @@ function selectItem(selectedValue: string) {
     </PopoverTrigger>
     <PopoverContent class="w-[200px] p-0">
       <Command>
-        <CommandInput class="h-9" placeholder="Search..." />
+        <CommandInput class="h-9" placeholder="Search..." @input="handleSearchInput" />
         <CommandList>
-          <CommandEmpty>No items found.</CommandEmpty>
+          <CommandEmpty>
+            <span v-if="loading" class="flex items-center gap-2 justify-center text-muted-foreground text-sm">
+              <Loader2 class="size-4 animate-spin" /> Loading...
+            </span>
+            <span v-else>No items found.</span>
+          </CommandEmpty>
           <CommandGroup>
             <CommandItem
                 v-for="item in items"

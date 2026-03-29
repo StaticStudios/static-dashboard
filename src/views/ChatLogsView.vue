@@ -31,36 +31,64 @@ const userFilter = ref<string[]>([])
 const serverGroupFilter = ref<string[]>([])
 const typeFilter = ref<string[]>([])
 
-// Compute available options for autocomplete
-const availableUsers = computed(() => {
-  const users = new Set<string>()
-  chatLogs.value.forEach(entry => {
-    if (entry.senderName) {
-      users.add(entry.senderName)
-    }
-  })
-  return Array.from(users).sort()
-})
+// Pre-fetched filter options from API
+const prefetchedUsers = ref<string[]>([])
+const prefetchedServerGroups = ref<string[]>([])
+const prefetchedTypes = ref<string[]>([])
+const userSearchResults = ref<string[]>([])
+const userSearchLoading = ref(false)
+let userSearchTimeout: number | null = null
 
-const availableServerGroups = computed(() => {
-  const groups = new Set<string>()
-  chatLogs.value.forEach(entry => {
-    if (entry.serverGroup) {
-      groups.add(entry.serverGroup)
-    }
-  })
-  return Array.from(groups).sort()
-})
+const availableUsers = computed(() => [...new Set([...prefetchedUsers.value, ...userSearchResults.value])])
+const availableServerGroups = computed(() => prefetchedServerGroups.value)
+const availableTypes = computed(() => prefetchedTypes.value)
 
-const availableTypes = computed(() => {
-  const types = new Set<string>()
-  chatLogs.value.forEach(entry => {
-    if (entry.type) {
-      types.add(entry.type)
-    }
-  })
-  return Array.from(types).sort()
-})
+async function fetchPrefetchedOptions() {
+  const headers = {"Authorization": `Bearer ${await userStore.getAuthToken()}`}
+  try {
+    const [usersRes, groupsRes, typesRes] = await Promise.all([
+      axios.get(`${API_BASE_URL}/api/v1/internal/chatlogs/users`, {headers}),
+      axios.get(`${API_BASE_URL}/api/v1/internal/chatlogs/server-groups`, {headers}),
+      axios.get(`${API_BASE_URL}/api/v1/internal/chatlogs/chatrooms`, {headers}),
+    ])
+    prefetchedUsers.value = usersRes.data
+    prefetchedServerGroups.value = groupsRes.data
+    prefetchedTypes.value = typesRes.data
+  } catch (err) {
+    console.error("Error fetching filter options:", err)
+  }
+}
+
+async function searchUsersFromApi(query: string) {
+  userSearchLoading.value = true
+  try {
+    const headers = {"Authorization": `Bearer ${await userStore.getAuthToken()}`}
+    const response = await axios.get(`${API_BASE_URL}/api/v1/internal/chatlogs/users`, {
+      params: {query},
+      headers
+    })
+    userSearchResults.value = response.data
+  } catch (err) {
+    console.error("Error searching users:", err)
+  } finally {
+    userSearchLoading.value = false
+  }
+}
+
+function onUserSearch(query: string) {
+  if (userSearchTimeout) clearTimeout(userSearchTimeout)
+  if (!query) {
+    userSearchResults.value = []
+    return
+  }
+  const lowerQuery = query.toLowerCase()
+  const foundInPrefetched = prefetchedUsers.value.some(u => u.toLowerCase().includes(lowerQuery))
+  if (foundInPrefetched) {
+    userSearchResults.value = []
+    return
+  }
+  userSearchTimeout = setTimeout(() => searchUsersFromApi(query), 300) as unknown as number
+}
 
 const filteredChatLogs = computed(() => chatLogs.value)
 
@@ -117,7 +145,7 @@ function buildFilterParams() {
   return {
     users: userFilter.value.length > 0 ? userFilter.value : undefined,
     serverGroups: serverGroupFilter.value.length > 0 ? serverGroupFilter.value : undefined,
-    channels: typeFilter.value.length > 0 ? typeFilter.value : undefined,
+    chatrooms: typeFilter.value.length > 0 ? typeFilter.value : undefined,
   }
 }
 
@@ -278,7 +306,7 @@ async function connectWebSocket() {
 }
 
 onMounted(async () => {
-  await fetchChatLogs()
+  await Promise.all([fetchChatLogs(), fetchPrefetchedOptions()])
   connectWebSocket()
   await nextTick()
   scrollToBottom()
@@ -314,7 +342,7 @@ onUnmounted(() => {
           <div class="border rounded-lg p-3 bg-card">
             <div class="space-y-2">
               <label class="text-sm font-medium">Users</label>
-              <Combobox :items="availableUsers" hint="Add Users..." @select="addUserFilter"/>
+              <Combobox :items="availableUsers" hint="Add Users..." :loading="userSearchLoading" @select="addUserFilter" @search="onUserSearch"/>
               <div v-if="userFilter.length" class="flex flex-wrap gap-1.5 pt-1">
                 <span
                     v-for="name in userFilter"
