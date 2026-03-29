@@ -9,6 +9,7 @@ import {Client} from "@stomp/stompjs"
 import {ArrowDown, X} from "lucide-vue-next"
 import {API_BASE_URL, WS_BASE_URL} from "@/config/api"
 import Combobox from "@/components/custom/combobox/combobox.vue";
+import {Input} from "@/components/ui/input";
 import type {ChatLogEntry} from "@/types/chatlog.ts";
 
 const page = ref(0)
@@ -30,6 +31,8 @@ const showScrollButton = ref(false)
 const userFilter = ref<string[]>([])
 const serverGroupFilter = ref<string[]>([])
 const typeFilter = ref<string[]>([])
+const timestampFrom = ref<string>('')
+const timestampTo = ref<string>('')
 
 // Pre-fetched filter options from API
 const prefetchedUsers = ref<string[]>([])
@@ -95,6 +98,8 @@ const filteredChatLogs = computed(() => chatLogs.value)
 watch(userFilter, applyFilters, {deep: true})
 watch(serverGroupFilter, applyFilters, {deep: true})
 watch(typeFilter, applyFilters, {deep: true})
+watch(timestampFrom, applyFilters)
+watch(timestampTo, applyFilters)
 
 function addUserFilter(name: string) {
   if (name) {
@@ -146,6 +151,8 @@ function buildFilterParams() {
     users: userFilter.value.length > 0 ? userFilter.value : undefined,
     serverGroups: serverGroupFilter.value.length > 0 ? serverGroupFilter.value : undefined,
     chatrooms: typeFilter.value.length > 0 ? typeFilter.value : undefined,
+    from: timestampFrom.value ? new Date(timestampFrom.value).getTime() : undefined,
+    to: timestampTo.value ? new Date(timestampTo.value).getTime() : undefined,
   }
 }
 
@@ -403,6 +410,33 @@ onUnmounted(() => {
                     <X class="size-3"/>
                   </button>
                 </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Timestamp Filter -->
+          <div class="border rounded-lg p-3 bg-card">
+            <div class="space-y-2">
+              <label class="text-sm font-medium">Timestamp</label>
+              <div class="space-y-1.5">
+                <div>
+                  <label class="text-xs text-muted-foreground">From</label>
+                  <div class="flex items-center gap-1">
+                    <Input type="datetime-local" v-model="timestampFrom" class="h-8 text-xs"/>
+                    <button v-if="timestampFrom" class="hover:text-destructive-foreground transition-colors shrink-0" @click="timestampFrom = ''">
+                      <X class="size-3"/>
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label class="text-xs text-muted-foreground">To</label>
+                  <div class="flex items-center gap-1">
+                    <Input type="datetime-local" v-model="timestampTo" class="h-8 text-xs"/>
+                    <button v-if="timestampTo" class="hover:text-destructive-foreground transition-colors shrink-0" @click="timestampTo = ''">
+                      <X class="size-3"/>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
