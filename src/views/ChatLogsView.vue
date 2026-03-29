@@ -6,10 +6,10 @@ import {Skeleton} from "@/components/ui/skeleton"
 import ChatLogEntryComponent from "@/components/chatlog/ChatLogEntry.vue"
 import {useUserStore} from "@/stores/UserStore.ts"
 import {Client} from "@stomp/stompjs"
-import {ArrowDown, X} from "lucide-vue-next"
+import {ArrowDown, MessageSquareOff, X} from "lucide-vue-next"
 import {API_BASE_URL, WS_BASE_URL} from "@/config/api"
 import Combobox from "@/components/custom/combobox/combobox.vue";
-import {Input} from "@/components/ui/input";
+import DateTimePicker from "@/components/custom/datetime-picker/DateTimePicker.vue";
 import type {ChatLogEntry} from "@/types/chatlog.ts";
 
 const page = ref(0)
@@ -31,8 +31,8 @@ const showScrollButton = ref(false)
 const userFilter = ref<string[]>([])
 const serverGroupFilter = ref<string[]>([])
 const typeFilter = ref<string[]>([])
-const timestampFrom = ref<string>('')
-const timestampTo = ref<string>('')
+const timestampFrom = ref<number | null>(null)
+const timestampTo = ref<number | null>(null)
 
 // Pre-fetched filter options from API
 const prefetchedUsers = ref<string[]>([])
@@ -95,6 +95,22 @@ function onUserSearch(query: string) {
 
 const filteredChatLogs = computed(() => chatLogs.value)
 
+const hasActiveFilters = computed(() =>
+    userFilter.value.length > 0 ||
+    serverGroupFilter.value.length > 0 ||
+    typeFilter.value.length > 0 ||
+    timestampFrom.value !== null ||
+    timestampTo.value !== null
+)
+
+function clearAllFilters() {
+  userFilter.value = []
+  serverGroupFilter.value = []
+  typeFilter.value = []
+  timestampFrom.value = null
+  timestampTo.value = null
+}
+
 watch(userFilter, applyFilters, {deep: true})
 watch(serverGroupFilter, applyFilters, {deep: true})
 watch(typeFilter, applyFilters, {deep: true})
@@ -151,8 +167,8 @@ function buildFilterParams() {
     users: userFilter.value.length > 0 ? userFilter.value : undefined,
     serverGroups: serverGroupFilter.value.length > 0 ? serverGroupFilter.value : undefined,
     chatrooms: typeFilter.value.length > 0 ? typeFilter.value : undefined,
-    from: timestampFrom.value ? new Date(timestampFrom.value).getTime() : undefined,
-    to: timestampTo.value ? new Date(timestampTo.value).getTime() : undefined,
+    from: timestampFrom.value ?? undefined,
+    to: timestampTo.value ?? undefined,
   }
 }
 
@@ -343,7 +359,16 @@ onUnmounted(() => {
       <!-- Filters Sidebar -->
       <div class="w-64 shrink-0">
         <div class="border rounded-lg p-4 bg-muted/50 space-y-4 h-[calc(100vh-12rem)]">
-          <div class="text-lg font-semibold">Filters</div>
+          <div class="flex items-center justify-between">
+            <div class="text-lg font-semibold">Filters</div>
+            <button
+                v-if="hasActiveFilters"
+                class="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                @click="clearAllFilters"
+            >
+              Clear all
+            </button>
+          </div>
 
           <!-- Users Filter -->
           <div class="border rounded-lg p-3 bg-card">
@@ -421,21 +446,11 @@ onUnmounted(() => {
               <div class="space-y-1.5">
                 <div>
                   <label class="text-xs text-muted-foreground">From</label>
-                  <div class="flex items-center gap-1">
-                    <Input type="datetime-local" v-model="timestampFrom" class="h-8 text-xs"/>
-                    <button v-if="timestampFrom" class="hover:text-destructive-foreground transition-colors shrink-0" @click="timestampFrom = ''">
-                      <X class="size-3"/>
-                    </button>
-                  </div>
+                  <DateTimePicker v-model="timestampFrom" placeholder="Pick start..."/>
                 </div>
                 <div>
                   <label class="text-xs text-muted-foreground">To</label>
-                  <div class="flex items-center gap-1">
-                    <Input type="datetime-local" v-model="timestampTo" class="h-8 text-xs"/>
-                    <button v-if="timestampTo" class="hover:text-destructive-foreground transition-colors shrink-0" @click="timestampTo = ''">
-                      <X class="size-3"/>
-                    </button>
-                  </div>
+                  <DateTimePicker v-model="timestampTo" placeholder="Pick end..."/>
                 </div>
               </div>
             </div>
@@ -445,30 +460,48 @@ onUnmounted(() => {
 
       <!-- Chat Logs -->
       <div class="flex-1 min-w-0">
-        <div v-if="loading" class="space-y-2">
-          <Skeleton v-for="i in 12" :key="i" class="h-8 w-full"/>
+        <div v-if="loading" class="border rounded-lg bg-card h-[calc(100vh-12rem)] divide-y divide-border overflow-hidden">
+          <div v-for="i in 18" :key="i" class="flex items-center gap-2 px-3 py-1.5">
+            <Skeleton class="h-3 w-11 shrink-0"/>
+            <Skeleton class="size-3.5 shrink-0 rounded-sm"/>
+            <Skeleton :class="['h-3 shrink-0', ['w-16','w-20','w-14','w-24','w-12'][i % 5]]"/>
+            <Skeleton class="h-3 w-2 shrink-0"/>
+            <Skeleton :class="['h-3', ['w-32','w-48','w-40','w-56','w-36','w-28','w-44','w-52'][i % 8]]"/>
+          </div>
         </div>
 
         <div v-else-if="error" class="text-destructive-foreground text-sm">
           {{ error }}
         </div>
 
-        <div v-else-if="chatLogs.length === 0" class="text-muted-foreground text-sm">
-          No chat logs found.
+        <div v-else-if="chatLogs.length === 0" class="border rounded-lg bg-card h-[calc(100vh-12rem)] flex flex-col items-center justify-center gap-3 text-center">
+          <MessageSquareOff class="size-10 text-muted-foreground/40"/>
+          <div>
+            <p class="text-sm font-medium">No chat logs found</p>
+            <p class="text-xs text-muted-foreground mt-0.5">
+              {{ hasActiveFilters ? 'No messages match the current filters.' : 'There are no chat logs to display.' }}
+            </p>
+          </div>
+          <button
+              v-if="hasActiveFilters"
+              class="text-xs text-primary hover:underline"
+              @click="clearAllFilters"
+          >
+            Clear filters
+          </button>
         </div>
 
         <div v-else class="flex flex-col h-[calc(100vh-12rem)] relative">
-          <div v-if="hasMore" class="flex justify-center pb-4">
-            <Button @click="loadMore" :disabled="loadingMore" variant="secondary">
-              {{ loadingMore ? "Loading..." : "Load More" }}
-            </Button>
-          </div>
-
           <div
               ref="chatContainer"
               @scroll="handleScroll"
               class="border rounded-lg divide-y divide-border overflow-y-auto bg-card flex-1 custom-scrollbar"
           >
+            <div v-if="hasMore" class="flex justify-center p-2 sticky top-0 z-10 bg-card border-b border-border">
+              <Button @click="loadMore" :disabled="loadingMore" variant="secondary" size="sm">
+                {{ loadingMore ? "Loading..." : "Load More" }}
+              </Button>
+            </div>
             <ChatLogEntryComponent
                 v-for="entry in filteredChatLogs"
                 :key="entry.id"
