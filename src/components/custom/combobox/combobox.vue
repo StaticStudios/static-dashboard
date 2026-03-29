@@ -1,21 +1,10 @@
 <script setup lang="ts">
-import { CheckIcon, ChevronsUpDownIcon } from 'lucide-vue-next'
+import {CheckIcon, ChevronsUpDownIcon} from 'lucide-vue-next'
 import {computed, ref} from 'vue'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
+import {cn} from '@/lib/utils'
+import {Button} from '@/components/ui/button'
+import {Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,} from '@/components/ui/command'
+import {Popover, PopoverContent, PopoverTrigger,} from '@/components/ui/popover'
 
 const props = defineProps<{
   items: Array<string>,
@@ -57,7 +46,7 @@ function selectItem(selectedValue: string) {
       <Command>
         <CommandInput class="h-9" placeholder="Search..." />
         <CommandList>
-          <CommandEmpty>No framework found.</CommandEmpty>
+          <CommandEmpty>No items found.</CommandEmpty>
           <CommandGroup>
             <CommandItem
                 v-for="item in items"

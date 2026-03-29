@@ -62,32 +62,11 @@ const availableTypes = computed(() => {
   return Array.from(types).sort()
 })
 
-const filteredChatLogs = computed(() => {
-  let filtered = chatLogs.value
+const filteredChatLogs = computed(() => chatLogs.value)
 
-  if (userFilter.value.length > 0) {
-    filtered = filtered.filter(entry => {
-      const lowerFilters = userFilter.value.map(f => f.toLowerCase())
-      return lowerFilters.includes(entry.senderName?.toLowerCase())
-    })
-  }
-
-  if (serverGroupFilter.value.length > 0) {
-    filtered = filtered.filter(entry => {
-      const lowerFilters = serverGroupFilter.value.map(f => f.toLowerCase())
-      return lowerFilters.includes(entry.serverGroup?.toLowerCase())
-    })
-  }
-
-  if (typeFilter.value.length > 0) {
-    filtered = filtered.filter(entry => {
-      const lowerFilters = typeFilter.value.map(f => f.toLowerCase())
-      return lowerFilters.includes(entry.type?.toLowerCase())
-    })
-  }
-
-  return filtered
-})
+watch(userFilter, applyFilters, {deep: true})
+watch(serverGroupFilter, applyFilters, {deep: true})
+watch(typeFilter, applyFilters, {deep: true})
 
 function addUserFilter(name: string) {
   if (name) {
@@ -134,6 +113,14 @@ function removeTypeFilter(name: string) {
   typeFilter.value = typeFilter.value.filter(n => n !== name)
 }
 
+function buildFilterParams() {
+  return {
+    users: userFilter.value.length > 0 ? userFilter.value : undefined,
+    serverGroups: serverGroupFilter.value.length > 0 ? serverGroupFilter.value : undefined,
+    channels: typeFilter.value.length > 0 ? typeFilter.value : undefined,
+  }
+}
+
 async function fetchChatLogs() {
   loading.value = true
   error.value = null
@@ -145,7 +132,8 @@ async function fetchChatLogs() {
     const chatResponse = await axios.get(`${API_BASE_URL}/api/v1/internal/chatlogs/chat`, {
       params: {
         page: page.value,
-        limit: size
+        limit: size,
+        ...buildFilterParams()
       },
       headers
     })
@@ -165,6 +153,12 @@ async function fetchChatLogs() {
   }
 }
 
+async function applyFilters() {
+  page.value = 0
+  chatLogs.value = []
+  await fetchChatLogs()
+}
+
 async function loadMore() {
   loadingMore.value = true
   error.value = null
@@ -176,7 +170,8 @@ async function loadMore() {
     const chatResponse = await axios.get(`${API_BASE_URL}/api/v1/internal/chatlogs/chat`, {
       params: {
         page: page.value + 1,
-        limit: size
+        limit: size,
+        ...buildFilterParams()
       },
       headers
     })
