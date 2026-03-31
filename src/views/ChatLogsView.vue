@@ -34,11 +34,13 @@ const typeFilter = ref<string[]>([])
 const timestampFrom = ref<number | null>(null)
 const timestampTo = ref<number | null>(null)
 
+type UserOption = { uuid: string; name: string }
+
 // Pre-fetched filter options from API
-const prefetchedUsers = ref<string[]>([])
+const prefetchedUsers = ref<UserOption[]>([])
 const prefetchedServerGroups = ref<string[]>([])
 const prefetchedTypes = ref<string[]>([])
-const userSearchResults = ref<string[]>([])
+const userSearchResults = ref<UserOption[]>([])
 const userSearchLoading = ref(false)
 let userSearchTimeout: number | null = null
 
@@ -50,7 +52,7 @@ async function fetchPrefetchedOptions() {
   const headers = {"Authorization": `Bearer ${await userStore.getAuthToken()}`}
   try {
     const [usersRes, groupsRes, typesRes] = await Promise.all([
-      axios.get(`${API_BASE_URL}/api/v1/internal/chatlogs/users`, {headers}),
+      axios.get(`${API_BASE_URL}/api/v1/internal/dashboard/users`, {headers}),
       axios.get(`${API_BASE_URL}/api/v1/internal/chatlogs/server-groups`, {headers}),
       axios.get(`${API_BASE_URL}/api/v1/internal/chatlogs/chatrooms`, {headers}),
     ])
@@ -85,7 +87,7 @@ function onUserSearch(query: string) {
     return
   }
   const lowerQuery = query.toLowerCase()
-  const foundInPrefetched = prefetchedUsers.value.some(u => u.toLowerCase().includes(lowerQuery))
+  const foundInPrefetched = prefetchedUsers.value.some(u => u.name.toLowerCase().includes(lowerQuery))
   if (foundInPrefetched) {
     userSearchResults.value = []
     return
@@ -389,7 +391,7 @@ onUnmounted(() => {
           <div class="border rounded-lg p-3 bg-card">
             <div class="space-y-2">
               <label class="text-sm font-medium">Users</label>
-              <Combobox :items="availableUsers" hint="Add Users..." :loading="userSearchLoading" @select="addUserFilter" @search="onUserSearch"/>
+              <Combobox :items="availableUsers.map(u => u.name)" hint="Add Users..." :loading="userSearchLoading" @select="addUserFilter" @search="onUserSearch"/>
               <div v-if="userFilter.length" class="flex flex-wrap gap-1.5 pt-1">
                 <span
                     v-for="name in userFilter"
