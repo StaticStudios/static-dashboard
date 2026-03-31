@@ -224,14 +224,14 @@ onMounted(() => Promise.all([fetchPunishments(), fetchPrefetchedOptions()]))
 
 const TYPE_STYLES: Record<string, string> = {
   ban: 'bg-red-500/15 text-red-500',
-  'ip-ban': 'bg-orange-500/15 text-orange-500',
+  'ip_ban': 'bg-orange-500/15 text-orange-500',
   warn: 'bg-yellow-500/15 text-yellow-500',
   mute: 'bg-blue-500/15 text-blue-500',
   kick: 'bg-purple-500/15 text-purple-500',
 }
 
 function typeBadgeClass(type: string) {
-  return TYPE_STYLES[type] ?? 'bg-muted text-muted-foreground'
+  return TYPE_STYLES[type.toLowerCase()] ?? 'bg-muted text-muted-foreground'
 }
 
 function formatDate(value: string | number | null | undefined): string {
@@ -372,11 +372,20 @@ function formatDate(value: string | number | null | undefined): string {
 
         <!-- Table -->
         <div v-else class="border rounded-lg bg-card overflow-hidden flex flex-col flex-1 min-h-0 max-h-[calc(100vh-7.5rem)]">
-          <div ref="tableContainer" class="overflow-auto flex-1 custom-scrollbar" @scroll="handleScroll">
-            <table class="w-full text-sm">
-              <thead class="sticky top-0 z-10 bg-card">
+          <!-- Fixed header -->
+          <div class="shrink-0 overflow-y-scroll [scrollbar-gutter:stable] [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+            <table class="w-full text-sm table-fixed">
+              <colgroup>
+                <col class="w-28"/>
+                <col class="w-[15%]"/>
+                <col class="w-[15%]"/>
+                <col/>
+                <col class="w-40"/>
+                <col class="w-40"/>
+              </colgroup>
+              <thead>
                 <tr class="border-b bg-muted/40">
-                  <th class="px-3 py-2.5 text-left font-medium text-muted-foreground w-28">Type</th>
+                  <th class="px-3 py-2.5 text-left font-medium text-muted-foreground">Type</th>
                   <th class="px-3 py-2.5 text-left font-medium text-muted-foreground">Target</th>
                   <th class="px-3 py-2.5 text-left font-medium text-muted-foreground">Issued By</th>
                   <th class="px-3 py-2.5 text-left font-medium text-muted-foreground">Reason</th>
@@ -384,6 +393,19 @@ function formatDate(value: string | number | null | undefined): string {
                   <th class="px-3 py-2.5 text-left font-medium text-muted-foreground whitespace-nowrap">Expires At</th>
                 </tr>
               </thead>
+            </table>
+          </div>
+          <!-- Scrollable body -->
+          <div ref="tableContainer" class="overflow-auto flex-1 custom-scrollbar" @scroll="handleScroll">
+            <table class="w-full text-sm table-fixed">
+              <colgroup>
+                <col class="w-28"/>
+                <col class="w-[15%]"/>
+                <col class="w-[15%]"/>
+                <col/>
+                <col class="w-40"/>
+                <col class="w-40"/>
+              </colgroup>
               <tbody class="divide-y divide-border">
                 <tr
                     v-for="punishment in punishments"
@@ -392,7 +414,7 @@ function formatDate(value: string | number | null | undefined): string {
                 >
                   <td class="px-3 py-2.5">
                     <span :class="['inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium', typeBadgeClass(punishment.type)]">
-                      {{ punishment.type }}
+                      {{ punishment.type.replace(/_/g, ' ') }}
                     </span>
                   </td>
                   <td class="px-3 py-2.5 font-medium">{{ punishment.targetName }}</td>
