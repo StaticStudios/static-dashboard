@@ -11,7 +11,7 @@ import {isPermanent} from "@/types/punishment.ts"
 
 const PUNISHMENT_TYPES = ['Ban', 'IP Ban', 'Warn', 'Mute', 'Kick']
 
-const COUNT_PER_PAGE = 100
+const COUNT_PER_PAGE = 50
 
 type UserOption = { uuid: string; name: string }
 
