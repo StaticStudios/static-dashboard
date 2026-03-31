@@ -8,7 +8,7 @@ import {ShieldOff, X} from "lucide-vue-next"
 import {API_BASE_URL} from "@/config/api"
 import Combobox from "@/components/custom/combobox/combobox.vue"
 import type {Punishment, PunishmentsPage} from "@/types/punishment.ts"
-import {expiresAt, isPermanent} from "@/types/punishment.ts"
+import {isPermanent} from "@/types/punishment.ts"
 
 const PUNISHMENT_TYPES = ['Ban', 'IP Ban', 'Warn', 'Mute', 'Kick']
 
@@ -393,7 +393,7 @@ function formatDate(value: string | number | null | undefined): string {
                   <td class="px-3 py-2.5 text-muted-foreground whitespace-nowrap">{{ formatDate(punishment.issuedAt) }}</td>
                   <td class="px-3 py-2.5 text-muted-foreground whitespace-nowrap">
                     <span v-if="isPermanent(punishment)" class="text-xs text-muted-foreground">Permanent</span>
-                    <span v-else>{{ formatDate(expiresAt(punishment)) }}</span>
+                    <span v-else>{{ formatDate(punishment.expiresAt) }}</span>
                   </td>
                 </tr>
               </tbody>
