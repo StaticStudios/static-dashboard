@@ -171,7 +171,7 @@ async function fetchPunishments() {
     const response = await axios.get<PunishmentsPage>(`${API_BASE_URL}/api/v1/internal/punishments`, {
       params: {
         page: page.value,
-        count_per_page: COUNT_PER_PAGE,
+        limit: COUNT_PER_PAGE,
         ...buildFilterParams(),
       },
       headers,
@@ -200,7 +200,7 @@ async function loadMore() {
     const response = await axios.get<PunishmentsPage>(`${API_BASE_URL}/api/v1/internal/punishments`, {
       params: {
         page: page.value + 1,
-        count_per_page: COUNT_PER_PAGE,
+        limit: COUNT_PER_PAGE,
         ...buildFilterParams(),
       },
       headers,
