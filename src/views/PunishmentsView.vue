@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import {computed, onMounted, ref, watch} from "vue"
 import axios from "axios"
-import {Button} from "@/components/ui/button"
+import {Loader2, ShieldOff, X} from "lucide-vue-next"
 import {Skeleton} from "@/components/ui/skeleton"
 import {useUserStore} from "@/stores/UserStore.ts"
-import {ShieldOff, X} from "lucide-vue-next"
 import {API_BASE_URL} from "@/config/api"
 import Combobox from "@/components/custom/combobox/combobox.vue"
 import type {Punishment, PunishmentsPage} from "@/types/punishment.ts"
@@ -12,7 +11,7 @@ import {isPermanent} from "@/types/punishment.ts"
 
 const PUNISHMENT_TYPES = ['Ban', 'IP Ban', 'Warn', 'Mute', 'Kick']
 
-const COUNT_PER_PAGE = 50
+const COUNT_PER_PAGE = 100
 
 type UserOption = { uuid: string; name: string }
 
@@ -23,6 +22,15 @@ const loadingMore = ref(false)
 const error = ref<string | null>(null)
 const hasMore = ref(true)
 const userStore = useUserStore()
+const tableContainer = ref<HTMLElement | null>(null)
+
+function handleScroll() {
+  const el = tableContainer.value
+  if (!el || loadingMore.value || !hasMore.value) return
+  if (el.scrollHeight - el.scrollTop - el.clientHeight < 200) {
+    loadMore()
+  }
+}
 
 // Filters
 const targetFilter = ref<UserOption[]>([])
@@ -364,9 +372,9 @@ function formatDate(value: string | number | null | undefined): string {
 
         <!-- Table -->
         <div v-else class="border rounded-lg bg-card overflow-hidden flex flex-col flex-1 min-h-0 max-h-[calc(100vh-7.5rem)]">
-          <div class="overflow-auto flex-1 custom-scrollbar">
+          <div ref="tableContainer" class="overflow-auto flex-1 custom-scrollbar" @scroll="handleScroll">
             <table class="w-full text-sm">
-              <thead class="sticky top-0 z-10">
+              <thead class="sticky top-0 z-10 bg-card">
                 <tr class="border-b bg-muted/40">
                   <th class="px-3 py-2.5 text-left font-medium text-muted-foreground w-28">Type</th>
                   <th class="px-3 py-2.5 text-left font-medium text-muted-foreground">Target</th>
@@ -396,15 +404,16 @@ function formatDate(value: string | number | null | undefined): string {
                     <span v-else>{{ formatDate(punishment.expiresAt) }}</span>
                   </td>
                 </tr>
+                <tr v-if="loadingMore">
+                  <td colspan="6" class="px-3 py-3 text-center text-muted-foreground text-sm">
+                    <span class="inline-flex items-center gap-2">
+                      <Loader2 class="size-3.5 animate-spin"/>
+                      Loading...
+                    </span>
+                  </td>
+                </tr>
               </tbody>
             </table>
-          </div>
-
-          <!-- Load More (pinned outside scroll area) -->
-          <div v-if="hasMore" class="flex justify-center p-3 border-t shrink-0">
-            <Button @click="loadMore" :disabled="loadingMore" variant="secondary" size="sm">
-              {{ loadingMore ? "Loading..." : "Load More" }}
-            </Button>
           </div>
         </div>
       </div>
