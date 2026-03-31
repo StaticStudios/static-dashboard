@@ -373,7 +373,7 @@ function formatDate(value: string | number | null | undefined): string {
         <!-- Table -->
         <div v-else class="border rounded-lg bg-card overflow-hidden flex flex-col flex-1 min-h-0 max-h-[calc(100vh-7.5rem)]">
           <!-- Fixed header -->
-          <div class="shrink-0 overflow-y-scroll [scrollbar-gutter:stable] [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+          <div class="shrink-0 overflow-hidden [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
             <table class="w-full text-sm table-fixed">
               <colgroup>
                 <col class="w-28"/>
