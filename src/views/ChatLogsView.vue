@@ -210,8 +210,13 @@ async function applyFilters() {
 }
 
 async function loadMore() {
+  if (loadingMore.value) return
   loadingMore.value = true
   error.value = null
+
+  const container = chatContainer.value
+  const prevScrollHeight = container?.scrollHeight ?? 0
+
   let headers = {
     "Authorization": `Bearer ${await userStore.getAuthToken()}`
   }
@@ -236,6 +241,12 @@ async function loadMore() {
     chatLogs.value = [...newEntries, ...chatLogs.value]
     hasMore.value = chatResponse.data.last === false
     page.value++
+
+    // Restore scroll position so prepended items don't cause a jump
+    await nextTick()
+    if (container) {
+      container.scrollTop = container.scrollHeight - prevScrollHeight
+    }
   } catch (err: any) {
     error.value = err.message || "Failed to load more chat logs"
     console.error("Error loading more chat logs:", err)
@@ -255,6 +266,11 @@ function handleScroll() {
 
   const {scrollTop, scrollHeight, clientHeight} = chatContainer.value
   const distanceFromBottom = scrollHeight - scrollTop - clientHeight
+
+  // Load more when near the top
+  if (scrollTop < 100 && hasMore.value && !loadingMore.value) {
+    loadMore()
+  }
 
   // If user is within 100px of bottom, enable auto-scroll
   if (distanceFromBottom < 100) {
@@ -496,10 +512,8 @@ onUnmounted(() => {
               @scroll="handleScroll"
               class="border rounded-lg divide-y divide-border overflow-y-auto bg-card flex-1 custom-scrollbar"
           >
-            <div v-if="hasMore" class="flex justify-center p-2 sticky top-0 z-10 bg-card border-b border-border">
-              <Button @click="loadMore" :disabled="loadingMore" variant="secondary" size="sm">
-                {{ loadingMore ? "Loading..." : "Load More" }}
-              </Button>
+            <div v-if="loadingMore" class="flex justify-center p-2 sticky top-0 z-10 bg-card border-b border-border">
+              <span class="text-xs text-muted-foreground">Loading...</span>
             </div>
             <ChatLogEntryComponent
                 v-for="entry in filteredChatLogs"
