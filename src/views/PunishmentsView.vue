@@ -234,14 +234,14 @@ function formatDate(value: string | number | null | undefined): string {
 </script>
 
 <template>
-  <div class="px-4 pt-5 sm:px-10 w-full max-w-7xl">
+  <div class="px-4 pt-5 sm:px-10 w-full flex flex-col h-screen overflow-hidden">
     <div class="flex items-center gap-3 mb-6">
       <div class="text-3xl sm:text-4xl font-semibold">Punishments</div>
     </div>
 
-    <div class="flex gap-4">
+    <div class="flex gap-4 flex-1 min-h-0">
       <!-- Filters Sidebar -->
-      <div class="w-64 shrink-0">
+      <div class="w-64 shrink-0 overflow-y-auto">
         <div class="border rounded-lg p-4 bg-muted/50 space-y-4">
           <div class="flex items-center justify-between">
             <div class="text-lg font-semibold">Filters</div>
@@ -320,9 +320,9 @@ function formatDate(value: string | number | null | undefined): string {
       </div>
 
       <!-- Punishments List -->
-      <div class="flex-1 min-w-0">
+      <div class="flex-1 min-w-0 flex flex-col min-h-0">
         <!-- Loading skeleton -->
-        <div v-if="loading" class="border rounded-lg bg-card overflow-hidden">
+        <div v-if="loading" class="border rounded-lg bg-card overflow-hidden flex-1 overflow-y-auto">
           <div class="grid grid-cols-[7rem_1fr_1fr_1fr_1fr] gap-0 border-b bg-muted/40 px-3 py-2">
             <Skeleton class="h-3 w-10"/>
             <Skeleton class="h-3 w-12"/>
@@ -363,10 +363,10 @@ function formatDate(value: string | number | null | undefined): string {
         </div>
 
         <!-- Table -->
-        <div v-else class="border rounded-lg bg-card overflow-hidden">
-          <div class="overflow-x-auto">
+        <div v-else class="border rounded-lg bg-card overflow-hidden flex flex-col flex-1 min-h-0 max-h-[calc(100vh-7.5rem)]">
+          <div class="overflow-auto flex-1 custom-scrollbar">
             <table class="w-full text-sm">
-              <thead>
+              <thead class="sticky top-0 z-10">
                 <tr class="border-b bg-muted/40">
                   <th class="px-3 py-2.5 text-left font-medium text-muted-foreground w-28">Type</th>
                   <th class="px-3 py-2.5 text-left font-medium text-muted-foreground">Target</th>
@@ -400,8 +400,8 @@ function formatDate(value: string | number | null | undefined): string {
             </table>
           </div>
 
-          <!-- Load More -->
-          <div v-if="hasMore" class="flex justify-center p-3 border-t">
+          <!-- Load More (pinned outside scroll area) -->
+          <div v-if="hasMore" class="flex justify-center p-3 border-t shrink-0">
             <Button @click="loadMore" :disabled="loadingMore" variant="secondary" size="sm">
               {{ loadingMore ? "Loading..." : "Load More" }}
             </Button>
