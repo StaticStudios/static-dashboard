@@ -373,12 +373,12 @@ function formatDate(value: string | number | null | undefined): string {
         <!-- Table -->
         <div v-else class="border rounded-lg bg-card overflow-hidden flex flex-col flex-1 min-h-0 max-h-[calc(100vh-7.5rem)]">
           <!-- Fixed header -->
-          <div class="shrink-0 overflow-hidden [&::-webkit-scrollbar]:hidden [scrollbar-width:none]">
+          <div class="shrink-0 overflow-hidden">
             <table class="w-full text-sm table-fixed">
               <colgroup>
                 <col class="w-28"/>
-                <col class="w-[15%]"/>
-                <col class="w-[15%]"/>
+                <col class="w-36"/>
+                <col class="w-36"/>
                 <col/>
                 <col class="w-40"/>
                 <col class="w-40"/>
@@ -396,12 +396,12 @@ function formatDate(value: string | number | null | undefined): string {
             </table>
           </div>
           <!-- Scrollable body -->
-          <div ref="tableContainer" class="overflow-auto flex-1 custom-scrollbar" @scroll="handleScroll">
+          <div ref="tableContainer" class="overflow-y-auto overflow-x-hidden flex-1" @scroll="handleScroll">
             <table class="w-full text-sm table-fixed">
               <colgroup>
                 <col class="w-28"/>
-                <col class="w-[15%]"/>
-                <col class="w-[15%]"/>
+                <col class="w-36"/>
+                <col class="w-36"/>
                 <col/>
                 <col class="w-40"/>
                 <col class="w-40"/>
@@ -419,7 +419,7 @@ function formatDate(value: string | number | null | undefined): string {
                   </td>
                   <td class="px-3 py-2.5 font-medium">{{ punishment.targetName }}</td>
                   <td class="px-3 py-2.5 text-muted-foreground">{{ punishment.issuerName }}</td>
-                  <td class="px-3 py-2.5 text-muted-foreground max-w-xs truncate">{{ punishment.reason ?? '—' }}</td>
+                  <td class="px-3 py-2.5 text-muted-foreground truncate">{{ punishment.reason ?? '—' }}</td>
                   <td class="px-3 py-2.5 text-muted-foreground whitespace-nowrap">{{ formatDate(punishment.issuedAt) }}</td>
                   <td class="px-3 py-2.5 text-muted-foreground whitespace-nowrap">
                     <span v-if="isPermanent(punishment)" class="text-xs text-muted-foreground">Permanent</span>
