@@ -27,6 +27,7 @@ watch(isSignedIn, async (signedIn) => {
 
 onUnmounted(() => {
   userStore.stopAuthPolling()
+
 })
 </script>
 

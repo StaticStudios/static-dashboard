@@ -73,7 +73,7 @@ async function searchTargetsFromApi(query: string) {
   targetSearchLoading.value = true
   try {
     const headers = {"Authorization": `Bearer ${await userStore.getAuthToken()}`}
-    const response = await axios.get(`${API_BASE_URL}/api/v1/internal/punishments/targets`, {params: {query}, headers})
+    const response = await axios.get(`${API_BASE_URL}/api/v1/internal/dashboard/users`, {params: {query}, headers})
     targetSearchResults.value = response.data
   } catch (err) {
     console.error("Error searching targets:", err)
@@ -86,7 +86,7 @@ async function searchIssuersFromApi(query: string) {
   issuerSearchLoading.value = true
   try {
     const headers = {"Authorization": `Bearer ${await userStore.getAuthToken()}`}
-    const response = await axios.get(`${API_BASE_URL}/api/v1/internal/punishments/issuers`, {params: {query}, headers})
+    const response = await axios.get(`${API_BASE_URL}/api/v1/internal/dashboard/users`, {params: {query}, headers})
     issuerSearchResults.value = response.data
   } catch (err) {
     console.error("Error searching issuers:", err)
