@@ -52,10 +52,6 @@ router.beforeEach(async (to, _, next) => {
         return next({ path: '/login' })
     }
 
-    if (to.path === '/login' && isSignedIn.value) {
-        return next({ path: '/' })
-    }
-
     next()
 })
 
