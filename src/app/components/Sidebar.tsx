@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import { LayoutDashboard, Shield, MessageSquare, Sword, X } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Separator } from "./ui/separator";
-import { PUNISHMENTS } from "../data/punishments";
-import { CHAT_MESSAGES } from "../data/chat";
+import { usePunishments, getPunishmentStatus } from "../hooks/usePunishments";
+import { useChatMessageCount } from "../hooks/useChatMessageCount";
 import type { TabKey } from "../types";
 
 export const NAV_ITEMS: { key: TabKey; label: string; icon: ReactNode }[] = [
@@ -11,12 +11,6 @@ export const NAV_ITEMS: { key: TabKey; label: string; icon: ReactNode }[] = [
   { key: "punishments", label: "Punishments",  icon: <Shield size={15} />          },
   { key: "chat",        label: "In-Game Chat", icon: <MessageSquare size={15} />   },
 ];
-
-const ACTIVE_COUNTS: Record<TabKey, number | null> = {
-  dashboard:   null,
-  punishments: PUNISHMENTS.filter((p) => p.status === "Active").length,
-  chat:        CHAT_MESSAGES.length,
-};
 
 export function Sidebar({
   active,
@@ -27,6 +21,15 @@ export function Sidebar({
   onNavigate: (t: TabKey) => void;
   onClose?: () => void;
 }) {
+  const { punishments } = usePunishments();
+  const chatCount = useChatMessageCount();
+
+  const activeCounts: Record<TabKey, number | null> = {
+    dashboard:   null,
+    punishments: punishments.filter((p) => getPunishmentStatus(p) === "Active").length,
+    chat:        chatCount ?? 0,
+  };
+
   return (
     <aside className="flex flex-col h-full w-60 bg-sidebar border-r border-sidebar-border shrink-0">
       {/* Brand */}
@@ -54,7 +57,7 @@ export function Sidebar({
         </p>
         {NAV_ITEMS.map(({ key, label, icon }) => {
           const isActive = active === key;
-          const count = ACTIVE_COUNTS[key];
+          const count = activeCounts[key];
           return (
             <button
               key={key}

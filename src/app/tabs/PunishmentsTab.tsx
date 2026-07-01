@@ -10,21 +10,23 @@ import { FilterSelect } from "../components/FilterSelect";
 import { SimpleTooltip } from "../components/SimpleTooltip";
 import { PlayerAvatar } from "../components/PlayerAvatar";
 import { PunishmentBadge } from "../components/PunishmentBadge";
-import { PUNISHMENTS } from "../data/punishments";
+import { usePunishments, getPunishmentStatus } from "../hooks/usePunishments";
+import { initials } from "../../lib/utils";
 
 const PAGE_SIZE = 6;
 
 export function PunishmentsTab() {
+  const { punishments, loading } = usePunishments();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
 
-  const filtered = PUNISHMENTS.filter((p) => {
+  const filtered = punishments.filter((p) => {
     const q = search.toLowerCase();
-    const matchSearch = p.player.toLowerCase().includes(q) || p.staff.toLowerCase().includes(q);
+    const matchSearch = p.targetName.toLowerCase().includes(q) || p.issuerName.toLowerCase().includes(q);
     const matchType = typeFilter === "all" || p.type.toLowerCase() === typeFilter;
-    const matchStatus = statusFilter === "all" || p.status.toLowerCase() === statusFilter;
+    const matchStatus = statusFilter === "all" || getPunishmentStatus(p).toLowerCase() === statusFilter;
     return matchSearch && matchType && matchStatus;
   });
 
@@ -58,6 +60,7 @@ export function PunishmentsTab() {
               options={[
                 { value: "all", label: "All Types" },
                 { value: "ban", label: "Ban" },
+                { value: "ip_ban", label: "IP Ban" },
                 { value: "mute", label: "Mute" },
                 { value: "kick", label: "Kick" },
                 { value: "warn", label: "Warn" },
@@ -107,49 +110,54 @@ export function PunishmentsTab() {
             {paged.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="px-5 py-14 text-center text-sm font-mono text-muted-foreground whitespace-normal">
-                  No records match your current filters.
+                  {loading ? "Loading punishments…" : "No records match your current filters."}
                 </TableCell>
               </TableRow>
             ) : (
-              paged.map((p, i) => (
-                <TableRow key={p.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-2.5">
-                      <PlayerAvatar initials={p.avatar} seed={(page - 1) * PAGE_SIZE + i} />
-                      <span className="text-xs font-mono text-foreground whitespace-nowrap">{p.player}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell><PunishmentBadge type={p.type} /></TableCell>
-                  <TableCell>
-                    <span className="text-xs text-muted-foreground block min-w-[120px] max-w-[180px] whitespace-normal">{p.reason}</span>
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell">
-                    <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{p.staff}</span>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{p.date}</span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={p.status === "Active" ? "default" : "secondary"} className="text-[10px]">
-                      {p.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1.5">
-                      {p.status === "Active" && (p.type === "Ban" || p.type === "Mute") && (
-                        <SimpleTooltip content={`Remove ${p.type.toLowerCase()}`}>
-                          <Button variant="destructive-outline" size="sm">
-                            {p.type === "Ban" ? "Unban" : "Unmute"}
-                          </Button>
-                        </SimpleTooltip>
-                      )}
-                      <Button variant="outline" size="sm">
-                        <ExternalLink size={10} /> View
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+              paged.map((p, i) => {
+                const status = getPunishmentStatus(p);
+                return (
+                  <TableRow key={p.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-2.5">
+                        <PlayerAvatar initials={initials(p.targetName)} seed={(page - 1) * PAGE_SIZE + i} />
+                        <span className="text-xs font-mono text-foreground whitespace-nowrap">{p.targetName}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell><PunishmentBadge type={p.type} /></TableCell>
+                    <TableCell>
+                      <span className="text-xs text-muted-foreground block min-w-[120px] max-w-[180px] whitespace-normal">{p.reason}</span>
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{p.issuerName}</span>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{new Date(p.issuedAt).toLocaleString()}</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={status === "Active" ? "default" : "secondary"} className="text-[10px]">
+                        {status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5">
+                        {status === "Active" && (p.type === "BAN" || p.type === "IP_BAN" || p.type === "MUTE") && (
+                          <SimpleTooltip content="Not supported by the API yet">
+                            <span className="inline-flex">
+                              <Button variant="destructive-outline" size="sm" disabled>
+                                {p.type === "MUTE" ? "Unmute" : "Unban"}
+                              </Button>
+                            </span>
+                          </SimpleTooltip>
+                        )}
+                        <Button variant="outline" size="sm">
+                          <ExternalLink size={10} /> View
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>

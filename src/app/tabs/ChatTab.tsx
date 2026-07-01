@@ -7,32 +7,27 @@ import { Separator } from "../components/ui/separator";
 import { ScrollArea } from "../components/ui/scroll-area";
 import { SearchInput } from "../components/SearchInput";
 import { FilterSelect } from "../components/FilterSelect";
-import { CHAT_MESSAGES } from "../data/chat";
+import { useChatFeed } from "../hooks/useChatFeed";
+import { useServerGroups } from "../hooks/useServerGroups";
 
 const SERVER_COLORS: Record<string, string> = {
-  Global: "text-violet-400",
-  Skyblock: "text-blue-400",
-  Prison: "text-amber-400",
+  hub: "text-violet-400",
+  skyblock: "text-blue-400",
+  prison: "text-amber-400",
 };
-
-const RANK_LEGEND = [
-  { rank: "Admin",  color: "#ef4444" },
-  { rank: "Mod",    color: "#60a5fa" },
-  { rank: "Helper", color: "#a78bfa" },
-  { rank: "VIP+",   color: "#f59e0b" },
-  { rank: "VIP",    color: "#4ade80" },
-  { rank: "Player", color: "#71717a" },
-];
 
 export function ChatTab() {
   const [search, setSearch] = useState("");
   const [serverFilter, setServerFilter] = useState("all");
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const filtered = CHAT_MESSAGES.filter((m) => {
+  const { messages, loading } = useChatFeed();
+  const serverGroups = useServerGroups();
+
+  const filtered = messages.filter((m) => {
     const q = search.toLowerCase();
-    const matchSearch = m.message.toLowerCase().includes(q) || m.username.toLowerCase().includes(q);
-    const matchServer = serverFilter === "all" || m.server.toLowerCase() === serverFilter;
+    const matchSearch = m.content.toLowerCase().includes(q) || m.senderName.toLowerCase().includes(q);
+    const matchServer = serverFilter === "all" || m.serverGroup?.toLowerCase() === serverFilter;
     return matchSearch && matchServer;
   });
 
@@ -65,9 +60,7 @@ export function ChatTab() {
             placeholder="Server"
             options={[
               { value: "all", label: "All Servers" },
-              { value: "global", label: "Global" },
-              { value: "skyblock", label: "Skyblock" },
-              { value: "prison", label: "Prison" },
+              ...serverGroups.map((g) => ({ value: g.toLowerCase(), label: g.charAt(0).toUpperCase() + g.slice(1) })),
             ]}
           />
         </div>
@@ -97,7 +90,7 @@ export function ChatTab() {
           <div className="w-full p-3 space-y-0.5">
             {filtered.length === 0 ? (
               <div className="flex items-center justify-center h-[456px] text-sm font-mono text-muted-foreground">
-                No messages match your filter.
+                {loading ? "Loading messages…" : "No messages match your filter."}
               </div>
             ) : (
               filtered.map((msg) => (
@@ -105,36 +98,24 @@ export function ChatTab() {
                   key={msg.id}
                   className="flex items-start gap-3 px-3 py-2 rounded-lg hover:bg-muted/30 transition-colors group"
                 >
-                  <span className="text-[10px] font-mono text-muted-foreground/50 w-10 shrink-0 pt-0.5 tabular-nums select-none">
-                    {msg.time}
+                  <span className="text-[10px] font-mono text-muted-foreground/50 w-12 shrink-0 pt-0.5 tabular-nums select-none">
+                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </span>
                   <p className="text-xs font-mono leading-relaxed">
-                    <span className={cn("font-semibold mr-1.5", SERVER_COLORS[msg.server] ?? "text-muted-foreground")}>
-                      [{msg.server}]
-                    </span>
-                    <span className="font-bold mr-1" style={{ color: msg.rankColor }}>
-                      [{msg.rank}]
-                    </span>
-                    <span className="text-foreground font-semibold mr-1">{msg.username}</span>
+                    {msg.serverGroup && (
+                      <span className={cn("font-semibold mr-1.5", SERVER_COLORS[msg.serverGroup.toLowerCase()] ?? "text-muted-foreground")}>
+                        [{msg.serverGroup}]
+                      </span>
+                    )}
+                    <span className="text-foreground font-semibold mr-1">{msg.senderName}</span>
                     <span className="text-muted-foreground mr-1">:</span>
-                    <span className="text-foreground/75">{msg.message}</span>
+                    <span className="text-foreground/75">{msg.content}</span>
                   </p>
                 </div>
               ))
             )}
           </div>
         </ScrollArea>
-
-        {/* Rank legend */}
-        <Separator />
-        <div className="px-5 py-3 flex flex-wrap gap-x-5 gap-y-1.5">
-          {RANK_LEGEND.map(({ rank, color }) => (
-            <div key={rank} className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
-              <span className="text-[10px] font-mono font-semibold" style={{ color }}>{rank}</span>
-            </div>
-          ))}
-        </div>
       </Card>
     </div>
   );

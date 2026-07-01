@@ -1,5 +1,5 @@
 import { Ban, VolumeX, Shield, Zap, Users, Sword, Server, TrendingUp, Clock } from "lucide-react";
-import { cn } from "../../lib/utils";
+import { cn, initials } from "../../lib/utils";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Separator } from "../components/ui/separator";
@@ -7,16 +7,19 @@ import { Progress } from "../components/ui/progress";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../components/ui/table";
 import { PlayerAvatar } from "../components/PlayerAvatar";
 import { PunishmentBadge } from "../components/PunishmentBadge";
-import { PUNISHMENTS } from "../data/punishments";
+import { usePunishments, getPunishmentStatus } from "../hooks/usePunishments";
+import { usePlayerCounts } from "../hooks/usePlayerCounts";
 
 export function DashboardTab() {
+  const { punishments, total } = usePunishments();
+  const counts = usePlayerCounts();
+
   const stats = [
     {
       label: "Total Players",
-      value: 342,
-      max: 1000,
-      sub: "342 / 1000 slots",
-      pct: 34.2,
+      value: counts?.proxy ?? "…",
+      sub: `${counts?.proxy ?? "…"} / 1000 slots`,
+      pct: counts ? Math.min(100, (counts.proxy / 1000) * 100) : 0,
       icon: <Users size={16} />,
       accent: "#4ade80",
       accentClass: "text-primary",
@@ -24,10 +27,9 @@ export function DashboardTab() {
     },
     {
       label: "Skyblock",
-      value: 185,
-      max: 500,
-      sub: "185 / 500 slots",
-      pct: 37,
+      value: counts?.skyblock ?? "…",
+      sub: `${counts?.skyblock ?? "…"} / 500 slots`,
+      pct: counts ? Math.min(100, (counts.skyblock / 500) * 100) : 0,
       icon: <Sword size={16} />,
       accent: "#60a5fa",
       accentClass: "text-blue-400",
@@ -35,10 +37,9 @@ export function DashboardTab() {
     },
     {
       label: "Prison",
-      value: 157,
-      max: 500,
-      sub: "157 / 500 slots",
-      pct: 31.4,
+      value: counts?.prison ?? "…",
+      sub: `${counts?.prison ?? "…"} / 500 slots`,
+      pct: counts ? Math.min(100, (counts.prison / 500) * 100) : 0,
       icon: <Server size={16} />,
       accent: "#f59e0b",
       accentClass: "text-amber-400",
@@ -46,7 +47,7 @@ export function DashboardTab() {
     },
   ];
 
-  const activePunishments = PUNISHMENTS.filter((p) => p.status === "Active").length;
+  const activePunishments = punishments.filter((p) => getPunishmentStatus(p) === "Active").length;
 
   return (
     <div className="space-y-6">
@@ -58,9 +59,9 @@ export function DashboardTab() {
       {/* Quick stats strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: "Active Bans", value: PUNISHMENTS.filter(p => p.type === "Ban" && p.status === "Active").length, icon: <Ban size={13} />, color: "text-red-400" },
-          { label: "Active Mutes", value: PUNISHMENTS.filter(p => p.type === "Mute" && p.status === "Active").length, icon: <VolumeX size={13} />, color: "text-amber-400" },
-          { label: "Total Punishments", value: PUNISHMENTS.length, icon: <Shield size={13} />, color: "text-blue-400" },
+          { label: "Active Bans", value: punishments.filter(p => (p.type === "BAN" || p.type === "IP_BAN") && getPunishmentStatus(p) === "Active").length, icon: <Ban size={13} />, color: "text-red-400" },
+          { label: "Active Mutes", value: punishments.filter(p => p.type === "MUTE" && getPunishmentStatus(p) === "Active").length, icon: <VolumeX size={13} />, color: "text-amber-400" },
+          { label: "Total Punishments", value: total, icon: <Shield size={13} />, color: "text-blue-400" },
           { label: "Active Actions", value: activePunishments, icon: <Zap size={13} />, color: "text-primary" },
         ].map((s) => (
           <Card key={s.label} className="px-4 py-3.5 flex-row items-center gap-3">
@@ -87,7 +88,7 @@ export function DashboardTab() {
               <div className="flex items-end justify-between pt-2">
                 <p className="text-3xl font-bold font-display text-foreground">{s.value}</p>
                 <span className={cn("text-xs font-mono font-semibold pb-0.5", s.accentClass)}>
-                  {s.pct}%
+                  {s.pct.toFixed(1)}%
                 </span>
               </div>
             </CardHeader>
@@ -127,12 +128,12 @@ export function DashboardTab() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {PUNISHMENTS.slice(0, 5).map((p, i) => (
+            {punishments.slice(0, 5).map((p, i) => (
               <TableRow key={p.id}>
                 <TableCell>
                   <div className="flex items-center gap-2.5">
-                    <PlayerAvatar initials={p.avatar} seed={i} />
-                    <span className="text-xs font-mono text-foreground">{p.player}</span>
+                    <PlayerAvatar initials={initials(p.targetName)} seed={i} />
+                    <span className="text-xs font-mono text-foreground">{p.targetName}</span>
                   </div>
                 </TableCell>
                 <TableCell><PunishmentBadge type={p.type} /></TableCell>
@@ -140,10 +141,10 @@ export function DashboardTab() {
                   <span className="text-xs text-muted-foreground truncate max-w-[200px] block">{p.reason}</span>
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">
-                  <span className="text-xs font-mono text-muted-foreground">{p.staff}</span>
+                  <span className="text-xs font-mono text-muted-foreground">{p.issuerName}</span>
                 </TableCell>
                 <TableCell>
-                  <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{p.date}</span>
+                  <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{new Date(p.issuedAt).toLocaleString()}</span>
                 </TableCell>
               </TableRow>
             ))}
