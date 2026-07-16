@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { LayoutDashboard, Shield, MessageSquare, Sword, X } from "lucide-react";
+import { LayoutDashboard, Shield, MessageSquare, X } from "lucide-react";
+import logoSrc from "../../public/logo.png";
 import { cn } from "../../lib/utils";
 import { Separator } from "./ui/separator";
 import { usePunishments, getPunishmentStatus } from "../hooks/usePunishments";
@@ -35,11 +36,11 @@ export function Sidebar({
       {/* Brand */}
       <div className="px-5 h-14 flex items-center justify-between border-b border-sidebar-border">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center">
-            <Sword size={13} className="text-primary" />
+          <div className="w-7 h-7 rounded-lg overflow-hidden flex items-center justify-center">
+            <img src={logoSrc} alt="StaticStudios" className="w-full h-full object-contain" />
           </div>
           <div className="leading-none">
-            <p className="text-sm font-bold font-display text-foreground">CraftNet</p>
+            <p className="text-sm font-bold font-display text-foreground">StaticStudios</p>
             <p className="text-[10px] font-mono text-muted-foreground mt-0.5">Admin Panel</p>
           </div>
         </div>
