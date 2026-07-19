@@ -19,6 +19,7 @@ import { Separator } from "../../components/ui/separator";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../../components/ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../../components/ui/collapsible";
 import { FilterSelect } from "../../components/FilterSelect";
+import { SimpleTooltip } from "../../components/SimpleTooltip";
 import { PlayerAvatar } from "../../components/PlayerAvatar";
 import { PunishmentBadge } from "../../components/PunishmentBadge";
 import { usePlayerProfile, usePlayerActions, usePlayerActionIds } from "../../hooks/usePlayers";
@@ -35,8 +36,15 @@ function formatPlaytime(seconds: number): string {
   return `${h}h ${m}m`;
 }
 
-function formatDate(iso: string | null): string {
-  return iso ? new Date(iso).toLocaleString() : "—";
+/** Shows the date only, with the full date + time revealed on hover. */
+function DateValue({ iso }: { iso: string | null }) {
+  if (!iso) return <>—</>;
+  const d = new Date(iso);
+  return (
+    <SimpleTooltip content={d.toLocaleString()}>
+      <span className="cursor-default">{d.toLocaleDateString()}</span>
+    </SimpleTooltip>
+  );
 }
 
 function num(n: number): string {
@@ -130,8 +138,8 @@ export function PlayerDetail({ id, name, onBack }: { id: string; name: string; o
       {/* Quick stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard icon={<Clock size={16} />} label="Total Playtime" value={profile ? formatPlaytime(profile.playtime.total) : "…"} />
-        <StatCard icon={<Calendar size={16} />} label="First Joined" value={profile ? formatDate(profile.firstEverJoined) : "…"} />
-        <StatCard icon={<Activity size={16} />} label="Last Seen" value={profile ? formatDate(profile.lastSeen) : "…"} />
+        <StatCard icon={<Calendar size={16} />} label="First Joined" value={profile ? <DateValue iso={profile.firstEverJoined} /> : "…"} />
+        <StatCard icon={<Activity size={16} />} label="Last Seen" value={profile ? <DateValue iso={profile.lastSeen} /> : "…"} />
         <StatCard icon={<Shield size={16} />} label="Punishments" value={punishmentsLoading ? "…" : punishments.length} />
       </div>
 
@@ -300,7 +308,7 @@ export function PlayerDetail({ id, name, onBack }: { id: string; name: string; o
                     type="datetime-local"
                     value={fromInput}
                     onChange={(e) => setFromInput(e.target.value)}
-                    className="font-mono text-xs w-[190px]"
+                    className="font-mono text-xs w-[200px] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                   />
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -309,7 +317,7 @@ export function PlayerDetail({ id, name, onBack }: { id: string; name: string; o
                     type="datetime-local"
                     value={toInput}
                     onChange={(e) => setToInput(e.target.value)}
-                    className="font-mono text-xs w-[190px]"
+                    className="font-mono text-xs w-[200px] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                   />
                 </div>
               </div>
