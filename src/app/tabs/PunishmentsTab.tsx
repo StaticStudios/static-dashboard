@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Search, Filter, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { Search, Hash, Filter, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 import { Card } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -10,30 +10,50 @@ import { FilterSelect } from "../components/FilterSelect";
 import { SimpleTooltip } from "../components/SimpleTooltip";
 import { PlayerAvatar } from "../components/PlayerAvatar";
 import { PunishmentBadge } from "../components/PunishmentBadge";
-import { usePunishments, getPunishmentStatus } from "../hooks/usePunishments";
-import { initials } from "../../lib/utils";
+import { usePunishments, usePunishmentLookup, getPunishmentStatus } from "../hooks/usePunishments";
+import { cn, initials } from "../../lib/utils";
 
 const PAGE_SIZE = 6;
 
 export function PunishmentsTab() {
   const { punishments, loading } = usePunishments();
-  const [search, setSearch] = useState("");
+  const [idSearch, setIdSearch] = useState("");
+  const [playerSearch, setPlayerSearch] = useState("");
+  const [staffSearch, setStaffSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
 
-  const filtered = punishments.filter((p) => {
-    const q = search.toLowerCase();
-    const matchSearch = p.targetName.toLowerCase().includes(q) || p.issuerName.toLowerCase().includes(q);
-    const matchType = typeFilter === "all" || p.type.toLowerCase() === typeFilter;
-    const matchStatus = statusFilter === "all" || getPunishmentStatus(p).toLowerCase() === statusFilter;
-    return matchSearch && matchType && matchStatus;
-  });
+  // When an ID is entered, look up that single punishment directly and ignore the other filters.
+  const idActive = idSearch.trim() !== "";
+  const { result: idResult, status: idStatus } = usePunishmentLookup(idSearch);
+
+  const filtered = idActive
+    ? idResult
+      ? [idResult]
+      : []
+    : punishments.filter((p) => {
+        const matchPlayer = p.targetName.toLowerCase().includes(playerSearch.toLowerCase());
+        const matchStaff = p.issuerName.toLowerCase().includes(staffSearch.toLowerCase());
+        const matchType = typeFilter === "all" || p.type.toLowerCase() === typeFilter;
+        const matchStatus = statusFilter === "all" || getPunishmentStatus(p).toLowerCase() === statusFilter;
+        return matchPlayer && matchStaff && matchType && matchStatus;
+      });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  useEffect(() => { setPage(1); }, [search, typeFilter, statusFilter]);
+  const emptyMessage = idActive
+    ? idStatus === "invalid"
+      ? "Enter a full punishment UUID."
+      : idStatus === "loading"
+        ? "Looking up punishment…"
+        : "No punishment found with that ID."
+    : loading
+      ? "Loading punishments…"
+      : "No records match your current filters.";
+
+  useEffect(() => { setPage(1); }, [idSearch, playerSearch, staffSearch, typeFilter, statusFilter]);
 
   return (
     <div className="space-y-6">
@@ -44,38 +64,65 @@ export function PunishmentsTab() {
 
       {/* Filters */}
       <Card className="p-4">
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-          <SearchInput
-            className="flex-1"
-            placeholder="Search player or staff..."
-            value={search}
-            onChange={setSearch}
-            icon={<Search size={14} />}
-          />
-          <div className="flex gap-2.5 flex-wrap">
-            <FilterSelect
-              value={typeFilter}
-              onValueChange={setTypeFilter}
-              placeholder="Type"
-              options={[
-                { value: "all", label: "All Types" },
-                { value: "ban", label: "Ban" },
-                { value: "ip_ban", label: "IP Ban" },
-                { value: "mute", label: "Mute" },
-                { value: "kick", label: "Kick" },
-                { value: "warn", label: "Warn" },
-              ]}
+        <div className="flex flex-col gap-3">
+          {/* Punishment ID lookup + type filter */}
+          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+            <SearchInput
+              className="flex-1"
+              placeholder="Search by punishment ID (UUID)..."
+              value={idSearch}
+              onChange={setIdSearch}
+              icon={<Hash size={14} />}
             />
-            <FilterSelect
-              value={statusFilter}
-              onValueChange={setStatusFilter}
-              placeholder="Status"
-              options={[
-                { value: "all", label: "All Status" },
-                { value: "active", label: "Active" },
-                { value: "expired", label: "Expired" },
-              ]}
+            <div className={cn(idActive && "opacity-50 pointer-events-none")}>
+              <FilterSelect
+                value={typeFilter}
+                onValueChange={setTypeFilter}
+                placeholder="Type"
+                options={[
+                  { value: "all", label: "All Types" },
+                  { value: "ban", label: "Ban" },
+                  { value: "ip_ban", label: "IP Ban" },
+                  { value: "mute", label: "Mute" },
+                  { value: "kick", label: "Kick" },
+                  { value: "warn", label: "Warn" },
+                ]}
+              />
+            </div>
+          </div>
+          {/* Player + staff search + status filter */}
+          <div
+            className={cn(
+              "flex flex-col sm:flex-row gap-3 items-start sm:items-center",
+              idActive && "opacity-50 pointer-events-none"
+            )}
+          >
+            <SearchInput
+              className="flex-1"
+              placeholder="Search player..."
+              value={playerSearch}
+              onChange={setPlayerSearch}
+              icon={<Search size={14} />}
             />
+            <SearchInput
+              className="flex-1"
+              placeholder="Search staff..."
+              value={staffSearch}
+              onChange={setStaffSearch}
+              icon={<Search size={14} />}
+            />
+            <div>
+              <FilterSelect
+                value={statusFilter}
+                onValueChange={setStatusFilter}
+                placeholder="Status"
+                options={[
+                  { value: "all", label: "All Status" },
+                  { value: "active", label: "Active" },
+                  { value: "expired", label: "Expired" },
+                ]}
+              />
+            </div>
           </div>
         </div>
       </Card>
@@ -110,7 +157,7 @@ export function PunishmentsTab() {
             {paged.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="px-5 py-14 text-center text-sm font-mono text-muted-foreground whitespace-normal">
-                  {loading ? "Loading punishments…" : "No records match your current filters."}
+                  {emptyMessage}
                 </TableCell>
               </TableRow>
             ) : (

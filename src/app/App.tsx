@@ -8,11 +8,13 @@ import { Sidebar, NAV_ITEMS } from "./components/Sidebar";
 import { DashboardTab } from "./tabs/DashboardTab";
 import { PunishmentsTab } from "./tabs/PunishmentsTab";
 import { ChatTab } from "./tabs/ChatTab";
+import { usePlayerCounts } from "./hooks/usePlayerCounts";
 import type { TabKey } from "./types";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabKey>("dashboard");
   const [mobileSidebar, setMobileSidebar] = useState(false);
+  const counts = usePlayerCounts();
 
   return (
     <div
@@ -68,7 +70,7 @@ export default function App() {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5 text-xs font-mono">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              <span className="text-primary font-semibold hidden sm:inline">342</span>
+              <span className="text-primary font-semibold hidden sm:inline">{counts?.proxy ?? "…"}</span>
               <span className="text-muted-foreground hidden sm:inline">online</span>
             </div>
             <Separator orientation="vertical" className="h-4" />
