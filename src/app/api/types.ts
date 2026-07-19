@@ -45,3 +45,41 @@ export interface ChatLogEntry {
 }
 
 export type ServerCountType = "PROXY" | "SKYBLOCK" | "PRISON" | "HUB";
+
+export interface PlayerSummary {
+  id: string;
+  name: string;
+  lastSeen: string | null;
+}
+
+export interface PlayerProfile {
+  id: string;
+  name: string;
+  firstEverJoined: string | null;
+  lastSeen: string | null;
+  mcVersion: string | null;
+  playtime: { skyblock: number; prison: number; hub: number; total: number };
+  skyblock: {
+    money: number;
+    prestigePoints: number;
+    dungeonShards: number;
+    island: { id: string; name: string; owner: boolean } | null;
+  } | null;
+  prison: {
+    money: number;
+    tokens: number;
+    prestigePoints: number;
+    prestige: number;
+    mineRank: number;
+    gang: { id: string; name: string; owner: boolean } | null;
+  } | null;
+}
+
+export interface AuditAction {
+  logId: string;
+  timestamp: string;
+  applicationGroup: string;
+  applicationId: string;
+  actionId: string;
+  actionData: string | null;
+}

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { LayoutDashboard, Shield, MessageSquare, X } from "lucide-react";
+import { LayoutDashboard, Users, Shield, MessageSquare, X } from "lucide-react";
 import logoSrc from "../../public/logo.png";
 import { cn } from "../../lib/utils";
 import { Separator } from "./ui/separator";
@@ -9,6 +9,7 @@ import type { TabKey } from "../types";
 
 export const NAV_ITEMS: { key: TabKey; label: string; icon: ReactNode }[] = [
   { key: "dashboard",   label: "Dashboard",    icon: <LayoutDashboard size={15} /> },
+  { key: "players",     label: "Players",      icon: <Users size={15} />           },
   { key: "punishments", label: "Punishments",  icon: <Shield size={15} />          },
   { key: "chat",        label: "In-Game Chat", icon: <MessageSquare size={15} />   },
 ];
@@ -27,6 +28,7 @@ export function Sidebar({
 
   const activeCounts: Record<TabKey, number | null> = {
     dashboard:   null,
+    players:     null,
     punishments: punishments.filter((p) => getPunishmentStatus(p) === "Active").length,
     chat:        chatCount ?? 0,
   };

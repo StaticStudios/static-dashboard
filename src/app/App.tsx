@@ -6,6 +6,7 @@ import { Separator } from "./components/ui/separator";
 import { Tabs, TabsContent } from "./components/ui/tabs";
 import { Sidebar, NAV_ITEMS } from "./components/Sidebar";
 import { DashboardTab } from "./tabs/DashboardTab";
+import { PlayersTab } from "./tabs/PlayersTab";
 import { PunishmentsTab } from "./tabs/PunishmentsTab";
 import { ChatTab } from "./tabs/ChatTab";
 import { usePlayerCounts } from "./hooks/usePlayerCounts";
@@ -85,6 +86,7 @@ export default function App() {
           <div className="max-w-6xl mx-auto p-5 md:p-8">
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabKey)}>
               <TabsContent value="dashboard"><DashboardTab /></TabsContent>
+              <TabsContent value="players"><PlayersTab /></TabsContent>
               <TabsContent value="punishments"><PunishmentsTab /></TabsContent>
               <TabsContent value="chat"><ChatTab /></TabsContent>
             </Tabs>
