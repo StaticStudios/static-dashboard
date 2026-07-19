@@ -1,18 +1,35 @@
-import { Ban, VolumeX, Shield, Zap, Users, Sword, Server, TrendingUp, Clock } from "lucide-react";
+import { Ban, VolumeX, Shield, Zap, Users, Sword, Server, TrendingUp, Clock, Activity } from "lucide-react";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
 import { cn, initials } from "../../lib/utils";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Separator } from "../components/ui/separator";
 import { Progress } from "../components/ui/progress";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../components/ui/table";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+  type ChartConfig,
+} from "../components/ui/chart";
 import { PlayerAvatar } from "../components/PlayerAvatar";
 import { PunishmentBadge } from "../components/PunishmentBadge";
 import { usePunishments, getPunishmentStatus } from "../hooks/usePunishments";
 import { usePlayerCounts } from "../hooks/usePlayerCounts";
+import { usePlayerCountHistory } from "../hooks/usePlayerCountHistory";
+
+const chartConfig = {
+  network: { label: "Network", color: "var(--chart-1)" },
+  skyblock: { label: "Skyblock", color: "var(--chart-2)" },
+  prison: { label: "Prison", color: "var(--chart-3)" },
+} satisfies ChartConfig;
 
 export function DashboardTab() {
   const { punishments, total } = usePunishments();
   const counts = usePlayerCounts();
+  const history = usePlayerCountHistory();
 
   const stats = [
     {
@@ -105,6 +122,79 @@ export function DashboardTab() {
           </Card>
         ))}
       </div>
+
+      {/* Player Count Over Time */}
+      <Card className="group hover:border-white/10 transition-all duration-300">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <div className="flex items-center gap-2">
+            <Activity size={14} className="text-primary" />
+            <CardTitle>Player Count</CardTitle>
+            <CardDescription>last 5 min</CardDescription>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+            <span className="text-[10px] font-mono text-muted-foreground">Live</span>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {history.length === 0 ? (
+            <div className="h-[240px] flex items-center justify-center">
+              <p className="text-xs font-mono text-muted-foreground">Collecting data…</p>
+            </div>
+          ) : (
+            <ChartContainer config={chartConfig} className="h-[240px] w-full">
+              <AreaChart data={history} margin={{ left: 4, right: 12, top: 8 }}>
+                <defs>
+                  <linearGradient id="fillNetwork" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-network)" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="var(--color-network)" stopOpacity={0.02} />
+                  </linearGradient>
+                  <linearGradient id="fillSkyblock" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-skyblock)" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="var(--color-skyblock)" stopOpacity={0.02} />
+                  </linearGradient>
+                  <linearGradient id="fillPrison" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-prison)" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="var(--color-prison)" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} />
+                <XAxis dataKey="time" tickLine={false} axisLine={false} tickMargin={8} minTickGap={32} />
+                <YAxis width={32} tickLine={false} axisLine={false} allowDecimals={false} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Area
+                  dataKey="network"
+                  type="monotone"
+                  stroke="var(--color-network)"
+                  fill="url(#fillNetwork)"
+                  strokeWidth={2}
+                  isAnimationActive={false}
+                  dot={false}
+                />
+                <Area
+                  dataKey="skyblock"
+                  type="monotone"
+                  stroke="var(--color-skyblock)"
+                  fill="url(#fillSkyblock)"
+                  strokeWidth={2}
+                  isAnimationActive={false}
+                  dot={false}
+                />
+                <Area
+                  dataKey="prison"
+                  type="monotone"
+                  stroke="var(--color-prison)"
+                  fill="url(#fillPrison)"
+                  strokeWidth={2}
+                  isAnimationActive={false}
+                  dot={false}
+                />
+                <ChartLegend content={<ChartLegendContent />} />
+              </AreaChart>
+            </ChartContainer>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Recent Punishments */}
       <Card className="overflow-hidden">
