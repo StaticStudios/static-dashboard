@@ -23,26 +23,35 @@ export function SenderMultiSelect({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" className="min-w-[150px] max-w-[280px] justify-between font-mono text-sm">
-          <span className="truncate">
-            {selected.length === 0 ? "All senders" : selected.join(", ")}
-          </span>
-          <span className="flex items-center gap-1">
-            {selected.length > 0 && (
-              <X
-                size={13}
-                className="opacity-50 hover:opacity-100"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onChange([]);
-                }}
-              />
+      <div className="relative inline-block">
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              "min-w-[150px] max-w-[280px] justify-between font-mono text-sm",
+              selected.length > 0 && "pr-7",
             )}
-            <ChevronsUpDown size={13} className="opacity-50" />
-          </span>
-        </Button>
-      </PopoverTrigger>
+          >
+            <span className="truncate">
+              {selected.length === 0 ? "All senders" : selected.join(", ")}
+            </span>
+            <ChevronsUpDown size={13} className="opacity-50 shrink-0" />
+          </Button>
+        </PopoverTrigger>
+        {selected.length > 0 && (
+          <button
+            type="button"
+            aria-label="Clear sender filter"
+            className="absolute right-7 top-0 h-9 w-5 flex items-center justify-center text-muted-foreground/50 hover:text-foreground"
+            onClick={(e) => {
+              e.stopPropagation();
+              onChange([]);
+            }}
+          >
+            <X size={13} />
+          </button>
+        )}
+      </div>
       <PopoverContent className="w-[220px] p-0">
         <Command shouldFilter={false}>
           <CommandInput placeholder="Search players..." value={query} onValueChange={setQuery} />
