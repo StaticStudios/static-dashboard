@@ -1,6 +1,22 @@
+import { skinFaceUrl } from "../../lib/utils";
+import { PlayerHead } from "./PlayerHead";
+
 const AVATAR_HUES = [155, 210, 265, 30, 340, 185, 50, 300];
 
-export function PlayerAvatar({ initials, seed }: { initials: string; seed: number }) {
+export function PlayerAvatar({
+  initials,
+  seed,
+  skinTextureValue,
+}: {
+  initials: string;
+  seed: number;
+  skinTextureValue?: string | null;
+}) {
+  const url = skinFaceUrl(skinTextureValue);
+  if (url) {
+    return <PlayerHead url={url} size={28} />;
+  }
+
   const hue = AVATAR_HUES[seed % AVATAR_HUES.length];
   return (
     <div

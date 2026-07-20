@@ -15,6 +15,7 @@ export interface PunishmentResponse {
   id: string;
   targetId: string;
   targetName: string;
+  targetSkinTextureValue: string | null;
   type: PunishmentType;
   reason: string;
   issuedAt: string;
@@ -49,12 +50,14 @@ export type ServerCountType = "PROXY" | "SKYBLOCK" | "PRISON" | "HUB";
 export interface PlayerSummary {
   id: string;
   name: string;
+  skinTextureValue: string | null;
   lastSeen: string | null;
 }
 
 export interface PlayerProfile {
   id: string;
   name: string;
+  skinTextureValue: string | null;
   firstEverJoined: string | null;
   lastSeen: string | null;
   mcVersion: string | null;
@@ -73,6 +76,15 @@ export interface PlayerProfile {
     mineRank: number;
     gang: { id: string; name: string; owner: boolean } | null;
   } | null;
+}
+
+export interface MeResponse {
+  discordUsername: string;
+  role: string | null;
+  minecraftId: string | null;
+  minecraftName: string | null;
+  skinTextureValue: string | null;
+  skinTextureSignature: string | null;
 }
 
 export interface AuditAction {

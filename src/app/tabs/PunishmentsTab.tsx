@@ -167,7 +167,7 @@ export function PunishmentsTab() {
                   <TableRow key={p.id}>
                     <TableCell>
                       <div className="flex items-center gap-2.5">
-                        <PlayerAvatar initials={initials(p.targetName)} seed={(page - 1) * PAGE_SIZE + i} />
+                        <PlayerAvatar initials={initials(p.targetName)} seed={(page - 1) * PAGE_SIZE + i} skinTextureValue={p.targetSkinTextureValue} />
                         <span className="text-xs font-mono text-foreground whitespace-nowrap">{p.targetName}</span>
                       </div>
                     </TableCell>

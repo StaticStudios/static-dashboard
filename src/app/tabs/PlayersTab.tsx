@@ -70,7 +70,7 @@ export function PlayersTab() {
                 >
                   <TableCell>
                     <div className="flex items-center gap-2.5">
-                      <PlayerAvatar initials={initials(p.name)} seed={i} />
+                      <PlayerAvatar initials={initials(p.name)} seed={i} skinTextureValue={p.skinTextureValue} />
                       <span className="text-xs font-mono text-foreground whitespace-nowrap">{p.name}</span>
                     </div>
                   </TableCell>

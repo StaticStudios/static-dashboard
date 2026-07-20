@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
 import { LayoutDashboard, Users, Shield, MessageSquare, X } from "lucide-react";
 import logoSrc from "../../public/logo.png";
-import { cn } from "../../lib/utils";
+import { cn, initials, skinFaceUrl } from "../../lib/utils";
 import { Separator } from "./ui/separator";
+import { PlayerHead } from "./PlayerHead";
 import { usePunishments, getPunishmentStatus } from "../hooks/usePunishments";
 import { useChatMessageCount } from "../hooks/useChatMessageCount";
+import { useMe } from "../hooks/useMe";
 import type { TabKey } from "../types";
 
 export const NAV_ITEMS: { key: TabKey; label: string; icon: ReactNode }[] = [
@@ -25,6 +27,8 @@ export function Sidebar({
 }) {
   const { punishments } = usePunishments();
   const chatCount = useChatMessageCount();
+  const { me } = useMe();
+  const meHeadUrl = skinFaceUrl(me?.skinTextureValue);
 
   const activeCounts: Record<TabKey, number | null> = {
     dashboard:   null,
@@ -96,12 +100,16 @@ export function Sidebar({
       {/* User */}
       <div className="px-4 py-4">
         <div className="flex items-center gap-2.5 px-1">
-          <div className="w-7 h-7 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center text-[10px] font-bold font-mono text-primary shrink-0">
-            AS
-          </div>
+          {meHeadUrl ? (
+            <PlayerHead url={meHeadUrl} className="rounded-lg" />
+          ) : (
+            <div className="w-7 h-7 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center text-[10px] font-bold font-mono text-primary shrink-0">
+              {me ? initials(me.discordUsername) : "…"}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-mono text-foreground truncate font-medium">AdminSteveX</p>
-            <p className="text-[10px] font-mono text-primary leading-none mt-0.5">Owner</p>
+            <p className="text-xs font-mono text-foreground truncate font-medium">{me?.discordUsername ?? "…"}</p>
+            <p className="text-[10px] font-mono text-primary leading-none mt-0.5">{me?.role ?? "Staff"}</p>
           </div>
           <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
         </div>

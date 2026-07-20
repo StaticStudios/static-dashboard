@@ -222,7 +222,7 @@ export function DashboardTab() {
               <TableRow key={p.id}>
                 <TableCell>
                   <div className="flex items-center gap-2.5">
-                    <PlayerAvatar initials={initials(p.targetName)} seed={i} />
+                    <PlayerAvatar initials={initials(p.targetName)} seed={i} skinTextureValue={p.targetSkinTextureValue} />
                     <span className="text-xs font-mono text-foreground">{p.targetName}</span>
                   </div>
                 </TableCell>

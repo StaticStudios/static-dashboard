@@ -128,7 +128,7 @@ export function PlayerDetail({ id, name, onBack }: { id: string; name: string; o
         <Button variant="outline" size="icon" onClick={onBack}>
           <ArrowLeft size={15} />
         </Button>
-        <PlayerAvatar initials={initials(name)} seed={0} />
+        <PlayerAvatar initials={initials(name)} seed={0} skinTextureValue={profile?.skinTextureValue} />
         <div className="min-w-0">
           <h1 className="text-xl font-bold font-display tracking-tight text-foreground leading-none">{name}</h1>
           <p className="text-[11px] font-mono text-muted-foreground mt-1 truncate">{id}</p>

@@ -4,6 +4,16 @@ export const WS_URL = BASE_URL.replace(/^http/, "ws") + "/ws";
 
 type QueryValue = string | number | boolean | readonly string[] | undefined;
 
+let tokenGetter: (() => Promise<string | null>) | null = null;
+
+/**
+ * Registers how to obtain the current auth token. Set once at bootstrap by the Clerk integration;
+ * when unset (e.g. local dev without Clerk) requests go out without an Authorization header.
+ */
+export function setAuthTokenGetter(getter: (() => Promise<string | null>) | null): void {
+  tokenGetter = getter;
+}
+
 export async function apiFetch<T>(path: string, params?: Record<string, QueryValue>): Promise<T> {
   const url = new URL(path, BASE_URL);
   if (params) {
@@ -17,7 +27,8 @@ export async function apiFetch<T>(path: string, params?: Record<string, QueryVal
     }
   }
 
-  const res = await fetch(url);
+  const token = tokenGetter ? await tokenGetter() : null;
+  const res = await fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
   if (!res.ok) {
     throw new Error(`API request to ${path} failed: ${res.status} ${res.statusText}`);
   }
