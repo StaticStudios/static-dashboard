@@ -23,12 +23,12 @@ export function SenderMultiSelect({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <div className="relative inline-block">
+      <div className="relative flex-1 min-w-[150px]">
         <PopoverTrigger asChild>
           <Button
             variant="outline"
             className={cn(
-              "min-w-[150px] max-w-[280px] justify-between font-mono text-sm",
+              "w-full justify-between font-mono text-sm",
               selected.length > 0 && "pr-7",
             )}
           >
