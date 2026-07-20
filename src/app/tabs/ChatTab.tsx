@@ -35,10 +35,7 @@ export function ChatTab() {
     to: dateRange?.to ? endOfDay(dateRange.to).getTime() : undefined,
   });
 
-  const filtered = messages.filter((m) => {
-    const q = search.toLowerCase();
-    return m.content.toLowerCase().includes(q) || m.senderName.toLowerCase().includes(q);
-  });
+  const filtered = messages.filter((m) => m.content.toLowerCase().includes(search.toLowerCase()));
 
   const wasAtBottomRef = useRef(true);
   const isPrependingRef = useRef(false);
@@ -95,7 +92,7 @@ export function ChatTab() {
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center flex-wrap">
           <SearchInput
             className="flex-1"
-            placeholder="Filter by keyword or username..."
+            placeholder="Filter by message content..."
             value={search}
             onChange={setSearch}
             icon={<Search size={14} />}

@@ -24,9 +24,9 @@ export function SenderMultiSelect({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="min-w-[150px] justify-between font-mono text-sm">
+        <Button variant="outline" className="min-w-[150px] max-w-[280px] justify-between font-mono text-sm">
           <span className="truncate">
-            {selected.length === 0 ? "All senders" : `${selected.length} sender${selected.length > 1 ? "s" : ""}`}
+            {selected.length === 0 ? "All senders" : selected.join(", ")}
           </span>
           <span className="flex items-center gap-1">
             {selected.length > 0 && (
