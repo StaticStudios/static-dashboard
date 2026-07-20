@@ -106,10 +106,10 @@ export function ChatTab() {
               ...serverGroups.map((g) => ({ value: g.toLowerCase(), label: g.charAt(0).toUpperCase() + g.slice(1) })),
             ]}
           />
-        </div>
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center flex-wrap">
-          <SenderMultiSelect selected={selectedSenders} onChange={setSelectedSenders} />
           <DateRangeFilter value={dateRange} onChange={setDateRange} />
+        </div>
+        <div className="flex gap-3">
+          <SenderMultiSelect selected={selectedSenders} onChange={setSelectedSenders} />
         </div>
       </Card>
 
