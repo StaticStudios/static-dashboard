@@ -1,5 +1,5 @@
 import { Client, type IMessage } from "@stomp/stompjs";
-import { WS_URL } from "./client";
+import { WS_URL, getAuthToken } from "./client";
 import type { ChatLogEntry } from "./types";
 
 export function connectChatSocket(onMessage: (entry: ChatLogEntry) => void): () => void {
@@ -7,6 +7,11 @@ export function connectChatSocket(onMessage: (entry: ChatLogEntry) => void): () 
     brokerURL: WS_URL,
     reconnectDelay: 3000,
   });
+
+  client.beforeConnect = async () => {
+    const token = await getAuthToken();
+    client.connectHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+  };
 
   client.onConnect = () => {
     client.subscribe("/topic/chat", (message: IMessage) => {

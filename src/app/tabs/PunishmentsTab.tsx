@@ -155,8 +155,8 @@ export function PunishmentsTab() {
           </TableHeader>
           <TableBody>
             {paged.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="px-5 py-14 text-center text-sm font-mono text-muted-foreground whitespace-normal">
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={7} className="text-center text-sm font-mono text-muted-foreground">
                   {emptyMessage}
                 </TableCell>
               </TableRow>
@@ -173,7 +173,9 @@ export function PunishmentsTab() {
                     </TableCell>
                     <TableCell><PunishmentBadge type={p.type} /></TableCell>
                     <TableCell>
-                      <span className="text-xs text-muted-foreground block min-w-[120px] max-w-[180px] whitespace-normal">{p.reason}</span>
+                      <SimpleTooltip content={p.reason}>
+                        <span className="text-xs text-muted-foreground block min-w-[120px] max-w-[180px] truncate">{p.reason}</span>
+                      </SimpleTooltip>
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
                       <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{p.issuerName}</span>
@@ -206,6 +208,11 @@ export function PunishmentsTab() {
                 );
               })
             )}
+            {Array.from({ length: PAGE_SIZE - (paged.length === 0 ? 1 : paged.length) }, (_, i) => (
+              <TableRow key={`filler-${i}`} className="hover:bg-transparent">
+                <TableCell colSpan={7}>&nbsp;</TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
 

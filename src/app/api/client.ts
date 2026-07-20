@@ -14,6 +14,10 @@ export function setAuthTokenGetter(getter: (() => Promise<string | null>) | null
   tokenGetter = getter;
 }
 
+export async function getAuthToken(): Promise<string | null> {
+  return tokenGetter ? await tokenGetter() : null;
+}
+
 export async function apiFetch<T>(path: string, params?: Record<string, QueryValue>): Promise<T> {
   const url = new URL(path, BASE_URL);
   if (params) {

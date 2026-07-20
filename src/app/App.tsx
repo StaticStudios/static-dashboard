@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Menu } from "lucide-react";
 import { cn } from "../lib/utils";
 import { Button } from "./components/ui/button";
@@ -12,10 +12,23 @@ import { ChatTab } from "./tabs/ChatTab";
 import { usePlayerCounts } from "./hooks/usePlayerCounts";
 import type { TabKey } from "./types";
 
+const TAB_KEYS: TabKey[] = ["dashboard", "players", "punishments", "chat"];
+
+function getInitialTab(): TabKey {
+  const param = new URLSearchParams(window.location.search).get("tab");
+  return TAB_KEYS.includes(param as TabKey) ? (param as TabKey) : "dashboard";
+}
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState<TabKey>("dashboard");
+  const [activeTab, setActiveTab] = useState<TabKey>(getInitialTab);
   const [mobileSidebar, setMobileSidebar] = useState(false);
   const counts = usePlayerCounts();
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", activeTab);
+    window.history.replaceState(null, "", url);
+  }, [activeTab]);
 
   return (
     <div
