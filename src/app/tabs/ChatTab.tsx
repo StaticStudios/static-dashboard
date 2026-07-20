@@ -88,7 +88,7 @@ export function ChatTab() {
       </div>
 
       {/* Filters */}
-      <Card className="p-4">
+      <Card className="p-4 space-y-3">
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center flex-wrap">
           <SearchInput
             className="flex-1"
@@ -97,8 +97,6 @@ export function ChatTab() {
             onChange={setSearch}
             icon={<Search size={14} />}
           />
-          <SenderMultiSelect selected={selectedSenders} onChange={setSelectedSenders} />
-          <DateRangeFilter value={dateRange} onChange={setDateRange} />
           <FilterSelect
             value={serverFilter}
             onValueChange={setServerFilter}
@@ -108,6 +106,10 @@ export function ChatTab() {
               ...serverGroups.map((g) => ({ value: g.toLowerCase(), label: g.charAt(0).toUpperCase() + g.slice(1) })),
             ]}
           />
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center flex-wrap">
+          <SenderMultiSelect selected={selectedSenders} onChange={setSelectedSenders} />
+          <DateRangeFilter value={dateRange} onChange={setDateRange} />
         </div>
       </Card>
 
