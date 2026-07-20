@@ -97,15 +97,17 @@ export function ChatTab() {
             onChange={setSearch}
             icon={<Search size={14} />}
           />
-          <FilterSelect
-            value={serverFilter}
-            onValueChange={setServerFilter}
-            placeholder="Server"
-            options={[
-              { value: "all", label: "All Servers" },
-              ...serverGroups.map((g) => ({ value: g.toLowerCase(), label: g.charAt(0).toUpperCase() + g.slice(1) })),
-            ]}
-          />
+          <div className="w-[150px] shrink-0">
+            <FilterSelect
+              value={serverFilter}
+              onValueChange={setServerFilter}
+              placeholder="Server"
+              options={[
+                { value: "all", label: "All Servers" },
+                ...serverGroups.map((g) => ({ value: g.toLowerCase(), label: g.charAt(0).toUpperCase() + g.slice(1) })),
+              ]}
+            />
+          </div>
           <DateRangeFilter value={dateRange} onChange={setDateRange} />
         </div>
         <div className="flex gap-3">
