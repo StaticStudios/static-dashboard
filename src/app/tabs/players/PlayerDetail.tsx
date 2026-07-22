@@ -24,6 +24,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../../compo
 import { FilterSelect } from "../../components/FilterSelect";
 import { SimpleTooltip } from "../../components/SimpleTooltip";
 import { PlayerAvatar } from "../../components/PlayerAvatar";
+import { PlayerLink } from "../../components/PlayerLink";
 import { PunishmentBadge } from "../../components/PunishmentBadge";
 import { usePlayerProfile, usePlayerActions, usePlayerActionIds } from "../../hooks/usePlayers";
 import { getPunishmentStatus } from "../../hooks/usePunishments";
@@ -291,7 +292,9 @@ export function PlayerDetail() {
                           <span className="text-xs text-muted-foreground block max-w-[220px] whitespace-normal">{p.reason}</span>
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
-                          <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{p.issuerName}</span>
+                          <PlayerLink id={p.issuerId} name={p.issuerName}>
+                            <span className="text-xs font-mono text-muted-foreground whitespace-nowrap hover:text-foreground">{p.issuerName}</span>
+                          </PlayerLink>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
                           <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{new Date(p.issuedAt).toLocaleString()}</span>

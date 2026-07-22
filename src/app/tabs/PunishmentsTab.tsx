@@ -9,6 +9,7 @@ import { SearchInput } from "../components/SearchInput";
 import { FilterSelect } from "../components/FilterSelect";
 import { SimpleTooltip } from "../components/SimpleTooltip";
 import { PlayerAvatar } from "../components/PlayerAvatar";
+import { PlayerLink } from "../components/PlayerLink";
 import { PunishmentBadge } from "../components/PunishmentBadge";
 import { usePunishments, usePunishmentLookup, getPunishmentStatus } from "../hooks/usePunishments";
 import { cn, initials } from "../../lib/utils";
@@ -166,10 +167,10 @@ export function PunishmentsTab() {
                 return (
                   <TableRow key={p.id}>
                     <TableCell>
-                      <div className="flex items-center gap-2.5">
+                      <PlayerLink id={p.targetId} name={p.targetName} className="gap-2.5">
                         <PlayerAvatar initials={initials(p.targetName)} seed={(page - 1) * PAGE_SIZE + i} skinTextureValue={p.targetSkinTextureValue} />
                         <span className="text-xs font-mono text-foreground whitespace-nowrap">{p.targetName}</span>
-                      </div>
+                      </PlayerLink>
                     </TableCell>
                     <TableCell><PunishmentBadge type={p.type} /></TableCell>
                     <TableCell>
@@ -178,7 +179,9 @@ export function PunishmentsTab() {
                       </SimpleTooltip>
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
-                      <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{p.issuerName}</span>
+                      <PlayerLink id={p.issuerId} name={p.issuerName}>
+                        <span className="text-xs font-mono text-muted-foreground whitespace-nowrap hover:text-foreground">{p.issuerName}</span>
+                      </PlayerLink>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{new Date(p.issuedAt).toLocaleString()}</span>

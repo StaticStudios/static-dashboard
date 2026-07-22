@@ -15,6 +15,7 @@ import {
   type ChartConfig,
 } from "../components/ui/chart";
 import { PlayerAvatar } from "../components/PlayerAvatar";
+import { PlayerLink } from "../components/PlayerLink";
 import { PunishmentBadge } from "../components/PunishmentBadge";
 import { usePunishments, getPunishmentStatus } from "../hooks/usePunishments";
 import { usePlayerCounts } from "../hooks/usePlayerCounts";
@@ -221,17 +222,19 @@ export function DashboardTab() {
             {punishments.slice(0, 5).map((p, i) => (
               <TableRow key={p.id}>
                 <TableCell>
-                  <div className="flex items-center gap-2.5">
+                  <PlayerLink id={p.targetId} name={p.targetName} className="gap-2.5">
                     <PlayerAvatar initials={initials(p.targetName)} seed={i} skinTextureValue={p.targetSkinTextureValue} />
                     <span className="text-xs font-mono text-foreground">{p.targetName}</span>
-                  </div>
+                  </PlayerLink>
                 </TableCell>
                 <TableCell><PunishmentBadge type={p.type} /></TableCell>
                 <TableCell className="hidden md:table-cell">
                   <span className="text-xs text-muted-foreground truncate max-w-[200px] block">{p.reason}</span>
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">
-                  <span className="text-xs font-mono text-muted-foreground">{p.issuerName}</span>
+                  <PlayerLink id={p.issuerId} name={p.issuerName}>
+                    <span className="text-xs font-mono text-muted-foreground hover:text-foreground">{p.issuerName}</span>
+                  </PlayerLink>
                 </TableCell>
                 <TableCell>
                   <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{new Date(p.issuedAt).toLocaleString()}</span>
