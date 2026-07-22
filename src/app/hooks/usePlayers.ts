@@ -67,11 +67,11 @@ export function usePlayerProfile(id: string | null) {
 
 export function usePlayerActions(
   id: string | null,
-  filters: { actionId?: string; from?: number; to?: number }
+  filters: { actionId?: string; from?: number; to?: number; limit?: number }
 ) {
   const [actions, setActions] = useState<AuditAction[]>([]);
   const [loading, setLoading] = useState(false);
-  const { actionId, from, to } = filters;
+  const { actionId, from, to, limit } = filters;
 
   useEffect(() => {
     if (!id) {
@@ -80,7 +80,7 @@ export function usePlayerActions(
     }
     let cancelled = false;
     setLoading(true);
-    fetchPlayerActions(id, { actionId, from, to })
+    fetchPlayerActions(id, { actionId, from, to, limit })
       .then((list) => {
         if (!cancelled) setActions(list);
       })
@@ -93,7 +93,7 @@ export function usePlayerActions(
     return () => {
       cancelled = true;
     };
-  }, [id, actionId, from, to]);
+  }, [id, actionId, from, to, limit]);
 
   return { actions, loading };
 }

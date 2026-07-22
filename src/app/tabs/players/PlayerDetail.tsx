@@ -10,6 +10,8 @@ import {
   Shield,
   Activity,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Gamepad2,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../../components/ui/card";
@@ -51,6 +53,9 @@ function DateValue({ iso }: { iso: string | null }) {
 function num(n: number): string {
   return n.toLocaleString();
 }
+
+const ACTIONS_PAGE_SIZE = 15;
+const ACTIONS_FETCH_LIMIT = 300;
 
 function prettyJson(raw: string | null): string {
   if (!raw) return "—";
@@ -125,11 +130,23 @@ export function PlayerDetail() {
   const [actionFilter, setActionFilter] = useState("all");
   const [fromInput, setFromInput] = useState("");
   const [toInput, setToInput] = useState("");
+  const [actionsPage, setActionsPage] = useState(1);
   const { actions, loading: actionsLoading } = usePlayerActions(id, {
     actionId: actionFilter === "all" ? undefined : actionFilter,
     from: fromInput ? new Date(fromInput).getTime() : undefined,
     to: toInput ? new Date(toInput).getTime() : undefined,
+    limit: ACTIONS_FETCH_LIMIT,
   });
+
+  useEffect(() => {
+    setActionsPage(1);
+  }, [actionFilter, fromInput, toInput]);
+
+  const actionsTotalPages = Math.max(1, Math.ceil(actions.length / ACTIONS_PAGE_SIZE));
+  const pagedActions = actions.slice(
+    (actionsPage - 1) * ACTIONS_PAGE_SIZE,
+    actionsPage * ACTIONS_PAGE_SIZE
+  );
 
   return (
     <div className="space-y-6">
@@ -339,7 +356,7 @@ export function PlayerDetail() {
                 </p>
               ) : (
                 <div className="space-y-1.5">
-                  {actions.map((a) => (
+                  {pagedActions.map((a) => (
                     <Collapsible key={a.logId} className="rounded-lg border border-border bg-card/40">
                       <CollapsibleTrigger className="group w-full flex items-center gap-3 px-3 py-2.5 text-left">
                         <ChevronDown
@@ -361,6 +378,45 @@ export function PlayerDetail() {
                       </CollapsibleContent>
                     </Collapsible>
                   ))}
+                </div>
+              )}
+
+              {/* Pagination */}
+              {actionsTotalPages > 1 && (
+                <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
+                  <span className="text-xs font-mono text-muted-foreground">
+                    Showing {(actionsPage - 1) * ACTIONS_PAGE_SIZE + 1}
+                    –{Math.min(actionsPage * ACTIONS_PAGE_SIZE, actions.length)} of {actions.length}
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setActionsPage((p) => Math.max(1, p - 1))}
+                      disabled={actionsPage === 1}
+                    >
+                      <ChevronLeft size={13} />
+                    </Button>
+                    {Array.from({ length: actionsTotalPages }, (_, i) => i + 1).map((n) => (
+                      <Button
+                        key={n}
+                        size="sm"
+                        variant={actionsPage === n ? "default" : "ghost"}
+                        onClick={() => setActionsPage(n)}
+                        className="w-7 h-7 p-0 text-xs font-mono"
+                      >
+                        {n}
+                      </Button>
+                    ))}
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setActionsPage((p) => Math.min(actionsTotalPages, p + 1))}
+                      disabled={actionsPage === actionsTotalPages}
+                    >
+                      <ChevronRight size={13} />
+                    </Button>
+                  </div>
                 </div>
               )}
             </CardContent>
