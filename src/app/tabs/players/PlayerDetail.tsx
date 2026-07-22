@@ -349,14 +349,17 @@ export function PlayerDetail() {
                 </div>
               </div>
 
-              {/* Action list */}
-              {actions.length === 0 ? (
-                <p className="text-sm font-mono text-muted-foreground py-8 text-center">
-                  {actionsLoading ? "Loading actions…" : "No actions match these filters."}
-                </p>
-              ) : (
-                <div className="space-y-1.5">
-                  {pagedActions.map((a) => (
+              {/* Action list — always renders ACTIONS_PAGE_SIZE row-slots (real or invisible filler)
+                  so the card height doesn't jump between pages, filters, or the empty state. */}
+              <div className="space-y-1.5">
+                {actions.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-border/60 px-3 py-2.5 flex items-center justify-center">
+                    <span className="text-xs font-mono text-muted-foreground">
+                      {actionsLoading ? "Loading actions…" : "No actions match these filters."}
+                    </span>
+                  </div>
+                ) : (
+                  pagedActions.map((a) => (
                     <Collapsible key={a.logId} className="rounded-lg border border-border bg-card/40">
                       <CollapsibleTrigger className="group w-full flex items-center gap-3 px-3 py-2.5 text-left">
                         <ChevronDown
@@ -377,9 +380,26 @@ export function PlayerDetail() {
                         </div>
                       </CollapsibleContent>
                     </Collapsible>
-                  ))}
-                </div>
-              )}
+                  ))
+                )}
+                {Array.from(
+                  { length: ACTIONS_PAGE_SIZE - (actions.length === 0 ? 1 : pagedActions.length) },
+                  (_, i) => (
+                    <div
+                      key={`filler-${i}`}
+                      aria-hidden
+                      className="rounded-lg border border-transparent px-3 py-2.5 invisible"
+                    >
+                      <div className="flex items-center gap-3">
+                        <ChevronDown size={13} />
+                        <Badge variant="outline" className="text-[10px] font-mono shrink-0">filler</Badge>
+                        <span className="text-xs font-mono flex-1">filler</span>
+                        <span className="text-[11px] font-mono whitespace-nowrap">filler</span>
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
 
               {/* Pagination */}
               {actionsTotalPages > 1 && (
