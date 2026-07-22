@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router";
 import { ClerkProvider, RedirectToSignIn, SignedIn, SignedOut, useAuth } from "@clerk/clerk-react";
 import App from "./app/App.tsx";
 import { setAuthTokenGetter } from "./app/api/client";
@@ -26,13 +27,17 @@ root.render(
     <ClerkProvider publishableKey={clerkKey}>
       <ClerkTokenSync />
       <SignedIn>
-        <App />
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
       </SignedIn>
       <SignedOut>
         <RedirectToSignIn />
       </SignedOut>
     </ClerkProvider>
   ) : (
-    <App />
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
   )
 );

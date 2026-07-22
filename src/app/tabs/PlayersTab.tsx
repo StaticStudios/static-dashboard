@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { Search, Users } from "lucide-react";
 import { Card } from "../components/ui/card";
 import { Separator } from "../components/ui/separator";
@@ -6,17 +7,12 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from ".
 import { SearchInput } from "../components/SearchInput";
 import { PlayerAvatar } from "../components/PlayerAvatar";
 import { usePlayers } from "../hooks/usePlayers";
-import { PlayerDetail } from "./players/PlayerDetail";
 import { initials } from "../../lib/utils";
 
 export function PlayersTab() {
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<{ id: string; name: string } | null>(null);
+  const navigate = useNavigate();
   const { players, loading } = usePlayers(search);
-
-  if (selected) {
-    return <PlayerDetail id={selected.id} name={selected.name} onBack={() => setSelected(null)} />;
-  }
 
   return (
     <div className="space-y-6">
@@ -66,7 +62,7 @@ export function PlayersTab() {
                 <TableRow
                   key={p.id}
                   className="cursor-pointer"
-                  onClick={() => setSelected({ id: p.id, name: p.name })}
+                  onClick={() => navigate(`/players/${p.id}`, { state: { name: p.name } })}
                 >
                   <TableCell>
                     <div className="flex items-center gap-2.5">

@@ -1,34 +1,24 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { Navigate, Route, Routes, useLocation } from "react-router";
 import { Menu } from "lucide-react";
 import { cn } from "../lib/utils";
 import { Button } from "./components/ui/button";
 import { Separator } from "./components/ui/separator";
-import { Tabs, TabsContent } from "./components/ui/tabs";
 import { Sidebar, NAV_ITEMS } from "./components/Sidebar";
 import { DashboardTab } from "./tabs/DashboardTab";
 import { PlayersTab } from "./tabs/PlayersTab";
+import { PlayerDetail } from "./tabs/players/PlayerDetail";
 import { PunishmentsTab } from "./tabs/PunishmentsTab";
 import { ChatTab } from "./tabs/ChatTab";
 import { usePlayerCounts } from "./hooks/usePlayerCounts";
-import type { TabKey } from "./types";
-
-const TAB_KEYS: TabKey[] = ["dashboard", "players", "punishments", "chat"];
-
-function getInitialTab(): TabKey {
-  const param = new URLSearchParams(window.location.search).get("tab");
-  return TAB_KEYS.includes(param as TabKey) ? (param as TabKey) : "dashboard";
-}
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<TabKey>(getInitialTab);
   const [mobileSidebar, setMobileSidebar] = useState(false);
   const counts = usePlayerCounts();
-
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    url.searchParams.set("tab", activeTab);
-    window.history.replaceState(null, "", url);
-  }, [activeTab]);
+  const { pathname } = useLocation();
+  const activeLabel = NAV_ITEMS.find(
+    (n) => pathname === n.path || pathname.startsWith(`${n.path}/`)
+  )?.label;
 
   return (
     <div
@@ -50,7 +40,7 @@ export default function App() {
 
       {/* Sidebar – desktop */}
       <div className="hidden lg:flex">
-        <Sidebar active={activeTab} onNavigate={setActiveTab} />
+        <Sidebar />
       </div>
 
       {/* Sidebar – mobile drawer */}
@@ -60,7 +50,7 @@ export default function App() {
           mobileSidebar ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <Sidebar active={activeTab} onNavigate={setActiveTab} onClose={() => setMobileSidebar(false)} />
+        <Sidebar onClose={() => setMobileSidebar(false)} />
       </div>
 
       {/* Main */}
@@ -78,7 +68,7 @@ export default function App() {
             </Button>
             <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-muted-foreground">
               <span className="text-primary">/</span>
-              <span>{NAV_ITEMS.find((n) => n.key === activeTab)?.label}</span>
+              <span>{activeLabel}</span>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -97,12 +87,15 @@ export default function App() {
         {/* Content */}
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-6xl mx-auto p-5 md:p-8">
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabKey)}>
-              <TabsContent value="dashboard"><DashboardTab /></TabsContent>
-              <TabsContent value="players"><PlayersTab /></TabsContent>
-              <TabsContent value="punishments"><PunishmentsTab /></TabsContent>
-              <TabsContent value="chat"><ChatTab /></TabsContent>
-            </Tabs>
+            <Routes>
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<DashboardTab />} />
+              <Route path="/players" element={<PlayersTab />} />
+              <Route path="/players/:playerId" element={<PlayerDetail />} />
+              <Route path="/punishments" element={<PunishmentsTab />} />
+              <Route path="/chat" element={<ChatTab />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
           </div>
         </main>
       </div>

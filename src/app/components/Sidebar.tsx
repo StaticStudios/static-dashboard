@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useLocation, useNavigate } from "react-router";
 import { LayoutDashboard, Users, Shield, MessageSquare, X } from "lucide-react";
 import logoSrc from "../../public/logo.png";
 import { cn, initials, skinFaceUrl } from "../../lib/utils";
@@ -9,22 +10,16 @@ import { useChatMessageCount } from "../hooks/useChatMessageCount";
 import { useMe } from "../hooks/useMe";
 import type { TabKey } from "../types";
 
-export const NAV_ITEMS: { key: TabKey; label: string; icon: ReactNode }[] = [
-  { key: "dashboard",   label: "Dashboard",    icon: <LayoutDashboard size={15} /> },
-  { key: "players",     label: "Players",      icon: <Users size={15} />           },
-  { key: "punishments", label: "Punishments",  icon: <Shield size={15} />          },
-  { key: "chat",        label: "In-Game Chat", icon: <MessageSquare size={15} />   },
+export const NAV_ITEMS: { key: TabKey; path: string; label: string; icon: ReactNode }[] = [
+  { key: "dashboard",   path: "/dashboard",   label: "Dashboard",    icon: <LayoutDashboard size={15} /> },
+  { key: "players",     path: "/players",     label: "Players",      icon: <Users size={15} />           },
+  { key: "punishments", path: "/punishments", label: "Punishments",  icon: <Shield size={15} />          },
+  { key: "chat",        path: "/chat",        label: "In-Game Chat", icon: <MessageSquare size={15} />   },
 ];
 
-export function Sidebar({
-  active,
-  onNavigate,
-  onClose,
-}: {
-  active: TabKey;
-  onNavigate: (t: TabKey) => void;
-  onClose?: () => void;
-}) {
+export function Sidebar({ onClose }: { onClose?: () => void }) {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { punishments } = usePunishments();
   const chatCount = useChatMessageCount();
   const { me } = useMe();
@@ -62,13 +57,13 @@ export function Sidebar({
         <p className="text-[9px] font-mono font-semibold text-muted-foreground/50 uppercase tracking-widest px-2.5 mb-2">
           Menu
         </p>
-        {NAV_ITEMS.map(({ key, label, icon }) => {
-          const isActive = active === key;
+        {NAV_ITEMS.map(({ key, path, label, icon }) => {
+          const isActive = pathname === path || pathname.startsWith(`${path}/`);
           const count = activeCounts[key];
           return (
             <button
               key={key}
-              onClick={() => { onNavigate(key); onClose?.(); }}
+              onClick={() => { navigate(path); onClose?.(); }}
               className={cn(
                 "w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-all duration-150 group",
                 isActive

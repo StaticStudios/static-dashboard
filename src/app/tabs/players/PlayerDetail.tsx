@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
+import { useLocation, useNavigate, useParams } from "react-router";
 import {
   ArrowLeft,
   Clock,
@@ -106,8 +107,17 @@ function StatRow({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
-export function PlayerDetail({ id, name, onBack }: { id: string; name: string; onBack: () => void }) {
+export function PlayerDetail() {
+  const { playerId = "" } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const id = playerId;
+
   const { profile, loading } = usePlayerProfile(id);
+  // Name comes from the profile fetch; seed it from router state (when navigating
+  // from the list) so the header isn't blank before the profile loads.
+  const seedName = (location.state as { name?: string } | null)?.name;
+  const name = profile?.name ?? seedName ?? "…";
   const { punishments, loading: punishmentsLoading } = usePlayerPunishments(id);
 
   // Recent actions + filters
@@ -125,7 +135,7 @@ export function PlayerDetail({ id, name, onBack }: { id: string; name: string; o
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="outline" size="icon" onClick={onBack}>
+        <Button variant="outline" size="icon" onClick={() => navigate("/players")}>
           <ArrowLeft size={15} />
         </Button>
         <PlayerAvatar initials={initials(name)} seed={0} skinTextureValue={profile?.skinTextureValue} />
