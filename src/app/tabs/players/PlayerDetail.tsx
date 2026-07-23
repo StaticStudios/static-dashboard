@@ -7,6 +7,7 @@ import {
   Calendar,
   ChevronDown,
   Clock,
+  Fingerprint,
   Gamepad2,
   Home,
   Shield,
@@ -25,10 +26,10 @@ import {PlayerAvatar} from "../../components/PlayerAvatar";
 import {PlayerLink} from "../../components/PlayerLink";
 import {PunishmentBadge} from "../../components/PunishmentBadge";
 import {TablePager} from "../../components/TablePager";
-import {usePlayerActionIds, usePlayerActions, usePlayerProfile} from "../../hooks/usePlayers";
+import {usePlayerActionIds, usePlayerActions, usePlayerAlts, usePlayerProfile} from "../../hooks/usePlayers";
 import {getPunishmentStatus} from "../../hooks/usePunishments";
 import {fetchPunishments} from "../../api/punishments";
-import type {PunishmentResponse} from "../../api/types";
+import type {PlayerAlt, PunishmentResponse} from "../../api/types";
 import {cn, initials} from "../../../lib/utils";
 
 function formatPlaytime(seconds: number): string {
@@ -112,6 +113,47 @@ function StatCard({ icon, label, value }: { icon: ReactNode; label: string; valu
   );
 }
 
+/** Other accounts that logged in from an IP this player has also used recently — a heuristic, not a confirmed link. */
+function PossibleAltsCard({ alts, loading }: { alts: PlayerAlt[]; loading: boolean }) {
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Fingerprint size={14} className="text-primary" />
+          <CardTitle>Possible Alts</CardTitle>
+          <Badge variant="secondary" className="text-[10px]">{alts.length}</Badge>
+        </div>
+        <CardDescription>Accounts sharing an IP, last 7 days</CardDescription>
+      </CardHeader>
+      <Separator />
+      <CardContent className="p-3">
+        {alts.length === 0 ? (
+          <p className="text-xs font-mono text-muted-foreground py-2 px-2">
+            {loading ? "Checking…" : "None found."}
+          </p>
+        ) : (
+          <div className="space-y-1">
+            {alts.map((alt) => (
+              <PlayerLink
+                key={alt.id}
+                id={alt.id}
+                name={alt.name}
+                className="items-start gap-2.5 px-2 py-2 rounded-lg hover:bg-muted/30 transition-colors w-full"
+              >
+                <PlayerAvatar initials={initials(alt.name)} seed={0} skinTextureValue={alt.skinTextureValue} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-mono text-foreground font-semibold truncate">{alt.name}</p>
+                  <p className="text-[10px] font-mono text-muted-foreground truncate">{alt.ipAddresses.join(", ")}</p>
+                </div>
+              </PlayerLink>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function StatRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex items-center justify-between py-1.5">
@@ -128,6 +170,7 @@ export function PlayerDetail() {
   const id = playerId;
 
   const { profile, loading } = usePlayerProfile(id);
+  const { alts, loading: altsLoading } = usePlayerAlts(id);
   // Name comes from the profile fetch; seed it from router state (when navigating
   // from the list) so the header isn't blank before the profile loads.
   const seedName = (location.state as { name?: string } | null)?.name;
@@ -176,6 +219,9 @@ export function PlayerDetail() {
         </div>
       </div>
 
+      {/* Left: everything else / Right: possible alts */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 items-start">
+        <div className="space-y-6">
       {/* Quick stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard icon={<Clock size={16} />} label="Total Playtime" value={profile ? formatPlaytime(profile.playtime.total) : "…"} />
@@ -451,6 +497,12 @@ export function PlayerDetail() {
           </Card>
         </>
       )}
+        </div>
+
+        <div className="space-y-6">
+          <PossibleAltsCard alts={alts} loading={altsLoading} />
+        </div>
+      </div>
     </div>
   );
 }

@@ -32,6 +32,13 @@ export interface PunishmentResponse {
   expiresAt: string | null;
 }
 
+export interface PlayerAlt {
+  id: string;
+  name: string;
+  skinTextureValue: string | null;
+  ipAddresses: string[];
+}
+
 export interface ChatLogEntry {
   id: string;
   senderName: string;

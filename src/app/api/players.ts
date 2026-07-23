@@ -1,5 +1,5 @@
 import {apiFetch} from "./client";
-import type {AuditAction, Page, PlayerProfile, PlayerSummary} from "./types";
+import type {AuditAction, Page, PlayerAlt, PlayerProfile, PlayerSummary} from "./types";
 
 export function fetchPlayers(query?: string, limit = 50) {
   return apiFetch<PlayerSummary[]>("/api/v1/internal/players", { query, limit });
@@ -24,4 +24,8 @@ export function fetchPlayerActions(
 
 export function fetchPlayerActionIds(id: string) {
   return apiFetch<string[]>(`/api/v1/internal/players/${id}/action-ids`);
+}
+
+export function fetchPlayerAlts(id: string) {
+  return apiFetch<PlayerAlt[]>(`/api/v1/internal/players/${id}/alts`);
 }

@@ -1,6 +1,12 @@
 import {useEffect, useState} from "react";
-import {fetchPlayerActionIds, fetchPlayerActions, fetchPlayerProfile, fetchPlayers,} from "../api/players";
-import type {AuditAction, PlayerProfile, PlayerSummary} from "../api/types";
+import {
+    fetchPlayerActionIds,
+    fetchPlayerActions,
+    fetchPlayerAlts,
+    fetchPlayerProfile,
+    fetchPlayers,
+} from "../api/players";
+import type {AuditAction, PlayerAlt, PlayerProfile, PlayerSummary} from "../api/types";
 
 /** Debounced, server-side player search. Blank query returns the most-recently-seen players. */
 export function usePlayers(query: string) {
@@ -102,6 +108,36 @@ export function usePlayerActions(
   }, [id, actionId, from, to, page, limit]);
 
   return { actions, totalElements, totalPages, loading };
+}
+
+/** Possible alts: other accounts sharing an IP with this player in the last 7 days. */
+export function usePlayerAlts(id: string | null) {
+  const [alts, setAlts] = useState<PlayerAlt[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!id) {
+      setAlts([]);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    fetchPlayerAlts(id)
+      .then((list) => {
+        if (!cancelled) setAlts(list);
+      })
+      .catch(() => {
+        if (!cancelled) setAlts([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  return { alts, loading };
 }
 
 /** Distinct action-ids recorded for a player — used to populate the filter dropdown. */
