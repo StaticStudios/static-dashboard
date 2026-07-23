@@ -1,23 +1,33 @@
-import { useEffect, useState } from "react";
-import { Search, Hash, Filter, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
-import { Card } from "../components/ui/card";
-import { Badge } from "../components/ui/badge";
-import { Button } from "../components/ui/button";
-import { Separator } from "../components/ui/separator";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../components/ui/table";
-import { SearchInput } from "../components/SearchInput";
-import { FilterSelect } from "../components/FilterSelect";
-import { SimpleTooltip } from "../components/SimpleTooltip";
-import { PlayerAvatar } from "../components/PlayerAvatar";
-import { PlayerLink } from "../components/PlayerLink";
-import { PunishmentBadge } from "../components/PunishmentBadge";
-import { usePunishments, usePunishmentLookup, getPunishmentStatus } from "../hooks/usePunishments";
-import { cn, initials } from "../../lib/utils";
+import {useEffect, useState} from "react";
+import {ExternalLink, Filter, Hash, Search} from "lucide-react";
+import {Card} from "../components/ui/card";
+import {Badge} from "../components/ui/badge";
+import {Button} from "../components/ui/button";
+import {Separator} from "../components/ui/separator";
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "../components/ui/table";
+import {SearchInput} from "../components/SearchInput";
+import {FilterSelect} from "../components/FilterSelect";
+import {SimpleTooltip} from "../components/SimpleTooltip";
+import {PlayerAvatar} from "../components/PlayerAvatar";
+import {PlayerLink} from "../components/PlayerLink";
+import {PunishmentBadge} from "../components/PunishmentBadge";
+import {TablePager} from "../components/TablePager";
+import {getPunishmentStatus, usePunishmentLookup, usePunishments} from "../hooks/usePunishments";
+import {cn, initials} from "../../lib/utils";
 
 const PAGE_SIZE = 6;
 
+/** Debounces a fast-changing value (e.g. search input) so we don't hit the API on every keystroke. */
+function useDebounced<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const handle = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(handle);
+  }, [value, delayMs]);
+  return debounced;
+}
+
 export function PunishmentsTab() {
-  const { punishments, loading } = usePunishments();
   const [idSearch, setIdSearch] = useState("");
   const [playerSearch, setPlayerSearch] = useState("");
   const [staffSearch, setStaffSearch] = useState("");
@@ -25,24 +35,25 @@ export function PunishmentsTab() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
 
+  const debouncedPlayerSearch = useDebounced(playerSearch, 250);
+  const debouncedStaffSearch = useDebounced(staffSearch, 250);
+
+  const { punishments, totalElements, totalPages, loading } = usePunishments({
+    page,
+    limit: PAGE_SIZE,
+    type: typeFilter === "all" ? undefined : typeFilter,
+    targetName: debouncedPlayerSearch || undefined,
+    issuerName: debouncedStaffSearch || undefined,
+    status: statusFilter === "all" ? undefined : (statusFilter as "active" | "expired"),
+  });
+
   // When an ID is entered, look up that single punishment directly and ignore the other filters.
   const idActive = idSearch.trim() !== "";
   const { result: idResult, status: idStatus } = usePunishmentLookup(idSearch);
 
-  const filtered = idActive
-    ? idResult
-      ? [idResult]
-      : []
-    : punishments.filter((p) => {
-        const matchPlayer = p.targetName.toLowerCase().includes(playerSearch.toLowerCase());
-        const matchStaff = p.issuerName.toLowerCase().includes(staffSearch.toLowerCase());
-        const matchType = typeFilter === "all" || p.type.toLowerCase() === typeFilter;
-        const matchStatus = statusFilter === "all" || getPunishmentStatus(p).toLowerCase() === statusFilter;
-        return matchPlayer && matchStaff && matchType && matchStatus;
-      });
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const paged = idActive ? (idResult ? [idResult] : []) : punishments;
+  const displayTotal = idActive ? paged.length : totalElements;
+  const displayTotalPages = idActive ? 1 : totalPages;
 
   const emptyMessage = idActive
     ? idStatus === "invalid"
@@ -54,7 +65,9 @@ export function PunishmentsTab() {
       ? "Loading punishments…"
       : "No records match your current filters.";
 
-  useEffect(() => { setPage(1); }, [idSearch, playerSearch, staffSearch, typeFilter, statusFilter]);
+  useEffect(() => {
+    setPage(1);
+  }, [idSearch, debouncedPlayerSearch, debouncedStaffSearch, typeFilter, statusFilter]);
 
   return (
     <div className="space-y-6">
@@ -134,11 +147,11 @@ export function PunishmentsTab() {
           <div className="flex items-center gap-2">
             <Filter size={13} className="text-primary" />
             <span className="text-xs font-mono text-muted-foreground">
-              <span className="text-foreground font-semibold">{filtered.length}</span> records found
+              <span className="text-foreground font-semibold">{displayTotal}</span> records found
             </span>
           </div>
           <Badge variant="outline" className="text-[10px] font-mono">
-            Page {page} / {totalPages}
+            Page {page} / {displayTotalPages}
           </Badge>
         </div>
         <Separator />
@@ -220,32 +233,14 @@ export function PunishmentsTab() {
         </Table>
 
         {/* Pagination */}
-        {totalPages > 1 && (
+        {displayTotalPages > 1 && (
           <>
             <Separator />
             <div className="px-5 py-3.5 flex items-center justify-between">
               <span className="text-xs font-mono text-muted-foreground">
-                Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}
+                Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, displayTotal)} of {displayTotal}
               </span>
-              <div className="flex items-center gap-1.5">
-                <Button variant="outline" size="icon" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
-                  <ChevronLeft size={13} />
-                </Button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
-                  <Button
-                    key={n}
-                    size="sm"
-                    variant={page === n ? "default" : "ghost"}
-                    onClick={() => setPage(n)}
-                    className="w-7 h-7 p-0 text-xs font-mono"
-                  >
-                    {n}
-                  </Button>
-                ))}
-                <Button variant="outline" size="icon" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
-                  <ChevronRight size={13} />
-                </Button>
-              </div>
+              <TablePager page={page} totalPages={displayTotalPages} onPageChange={setPage} />
             </div>
           </>
         )}

@@ -1,36 +1,35 @@
-import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
-import { useLocation, useNavigate, useParams } from "react-router";
+import type {ReactNode} from "react";
+import {useEffect, useState} from "react";
+import {useLocation, useNavigate, useParams} from "react-router";
 import {
-  ArrowLeft,
-  Clock,
-  Calendar,
-  Home,
-  Users as UsersIcon,
-  Shield,
   Activity,
+  ArrowLeft,
+  Calendar,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
+  Clock,
   Gamepad2,
+  Home,
+  Shield,
+  Users as UsersIcon,
 } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Separator } from "../../components/ui/separator";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../../components/ui/table";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../../components/ui/collapsible";
-import { FilterSelect } from "../../components/FilterSelect";
-import { SimpleTooltip } from "../../components/SimpleTooltip";
-import { PlayerAvatar } from "../../components/PlayerAvatar";
-import { PlayerLink } from "../../components/PlayerLink";
-import { PunishmentBadge } from "../../components/PunishmentBadge";
-import { usePlayerProfile, usePlayerActions, usePlayerActionIds } from "../../hooks/usePlayers";
-import { getPunishmentStatus } from "../../hooks/usePunishments";
-import { fetchPunishments } from "../../api/punishments";
-import type { PunishmentResponse } from "../../api/types";
-import { cn, initials } from "../../../lib/utils";
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "../../components/ui/card";
+import {Badge} from "../../components/ui/badge";
+import {Button} from "../../components/ui/button";
+import {Input} from "../../components/ui/input";
+import {Separator} from "../../components/ui/separator";
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "../../components/ui/table";
+import {Collapsible, CollapsibleContent, CollapsibleTrigger} from "../../components/ui/collapsible";
+import {FilterSelect} from "../../components/FilterSelect";
+import {SimpleTooltip} from "../../components/SimpleTooltip";
+import {PlayerAvatar} from "../../components/PlayerAvatar";
+import {PlayerLink} from "../../components/PlayerLink";
+import {PunishmentBadge} from "../../components/PunishmentBadge";
+import {TablePager} from "../../components/TablePager";
+import {usePlayerActionIds, usePlayerActions, usePlayerProfile} from "../../hooks/usePlayers";
+import {getPunishmentStatus} from "../../hooks/usePunishments";
+import {fetchPunishments} from "../../api/punishments";
+import type {PunishmentResponse} from "../../api/types";
+import {cn, initials} from "../../../lib/utils";
 
 function formatPlaytime(seconds: number): string {
   if (!seconds || seconds <= 0) return "0m";
@@ -56,7 +55,7 @@ function num(n: number): string {
 }
 
 const ACTIONS_PAGE_SIZE = 15;
-const ACTIONS_FETCH_LIMIT = 300;
+const PUNISHMENTS_PAGE_SIZE = 5;
 
 function prettyJson(raw: string | null): string {
   if (!raw) return "—";
@@ -67,19 +66,28 @@ function prettyJson(raw: string | null): string {
   }
 }
 
-function usePlayerPunishments(id: string) {
+function usePlayerPunishments(id: string, page: number) {
   const [punishments, setPunishments] = useState<PunishmentResponse[]>([]);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetchPunishments({ target: [id], limit: 100 })
-      .then((page) => {
-        if (!cancelled) setPunishments(page.content);
+    fetchPunishments({ target: [id], page: page - 1, limit: PUNISHMENTS_PAGE_SIZE })
+      .then((result) => {
+        if (cancelled) return;
+        setPunishments(result.content);
+        setTotalElements(result.totalElements);
+        setTotalPages(Math.max(1, result.totalPages));
       })
       .catch(() => {
-        if (!cancelled) setPunishments([]);
+        if (!cancelled) {
+          setPunishments([]);
+          setTotalElements(0);
+          setTotalPages(1);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -87,9 +95,9 @@ function usePlayerPunishments(id: string) {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, page]);
 
-  return { punishments, loading };
+  return { punishments, totalElements, totalPages, loading };
 }
 
 function StatCard({ icon, label, value }: { icon: ReactNode; label: string; value: ReactNode }) {
@@ -124,7 +132,17 @@ export function PlayerDetail() {
   // from the list) so the header isn't blank before the profile loads.
   const seedName = (location.state as { name?: string } | null)?.name;
   const name = profile?.name ?? seedName ?? "…";
-  const { punishments, loading: punishmentsLoading } = usePlayerPunishments(id);
+  const [punishmentsPage, setPunishmentsPage] = useState(1);
+  const {
+    punishments,
+    totalElements: punishmentsTotal,
+    totalPages: punishmentsTotalPages,
+    loading: punishmentsLoading,
+  } = usePlayerPunishments(id, punishmentsPage);
+
+  useEffect(() => {
+    setPunishmentsPage(1);
+  }, [id]);
 
   // Recent actions + filters
   const actionIds = usePlayerActionIds(id);
@@ -132,22 +150,17 @@ export function PlayerDetail() {
   const [fromInput, setFromInput] = useState("");
   const [toInput, setToInput] = useState("");
   const [actionsPage, setActionsPage] = useState(1);
-  const { actions, loading: actionsLoading } = usePlayerActions(id, {
+  const { actions, totalElements: actionsTotal, totalPages: actionsTotalPages, loading: actionsLoading } = usePlayerActions(id, {
     actionId: actionFilter === "all" ? undefined : actionFilter,
     from: fromInput ? new Date(fromInput).getTime() : undefined,
     to: toInput ? new Date(toInput).getTime() : undefined,
-    limit: ACTIONS_FETCH_LIMIT,
+    page: actionsPage,
+    limit: ACTIONS_PAGE_SIZE,
   });
 
   useEffect(() => {
     setActionsPage(1);
   }, [actionFilter, fromInput, toInput]);
-
-  const actionsTotalPages = Math.max(1, Math.ceil(actions.length / ACTIONS_PAGE_SIZE));
-  const pagedActions = actions.slice(
-    (actionsPage - 1) * ACTIONS_PAGE_SIZE,
-    actionsPage * ACTIONS_PAGE_SIZE
-  );
 
   return (
     <div className="space-y-6">
@@ -168,7 +181,7 @@ export function PlayerDetail() {
         <StatCard icon={<Clock size={16} />} label="Total Playtime" value={profile ? formatPlaytime(profile.playtime.total) : "…"} />
         <StatCard icon={<Calendar size={16} />} label="First Joined" value={profile ? <DateValue iso={profile.firstEverJoined} /> : "…"} />
         <StatCard icon={<Activity size={16} />} label="Last Seen" value={profile ? <DateValue iso={profile.lastSeen} /> : "…"} />
-        <StatCard icon={<Shield size={16} />} label="Punishments" value={punishmentsLoading ? "…" : punishments.length} />
+        <StatCard icon={<Shield size={16} />} label="Punishments" value={punishmentsLoading ? "…" : punishmentsTotal} />
       </div>
 
       {loading && !profile ? (
@@ -261,7 +274,7 @@ export function PlayerDetail() {
               <div className="flex items-center gap-2">
                 <Shield size={14} className="text-primary" />
                 <CardTitle>Punishments</CardTitle>
-                <Badge variant="secondary" className="text-[10px]">{punishments.length}</Badge>
+                <Badge variant="secondary" className="text-[10px]">{punishmentsTotal}</Badge>
               </div>
             </CardHeader>
             <Separator />
@@ -306,8 +319,28 @@ export function PlayerDetail() {
                     );
                   })
                 )}
+                {Array.from(
+                  { length: PUNISHMENTS_PAGE_SIZE - (punishments.length === 0 ? 1 : punishments.length) },
+                  (_, i) => (
+                    <TableRow key={`filler-${i}`} className="hover:bg-transparent">
+                      <TableCell colSpan={5}>&nbsp;</TableCell>
+                    </TableRow>
+                  )
+                )}
               </TableBody>
             </Table>
+            {punishmentsTotalPages > 1 && (
+              <>
+                <Separator />
+                <div className="px-5 py-3.5 flex items-center justify-between">
+                  <span className="text-xs font-mono text-muted-foreground">
+                    Showing {(punishmentsPage - 1) * PUNISHMENTS_PAGE_SIZE + 1}
+                    –{Math.min(punishmentsPage * PUNISHMENTS_PAGE_SIZE, punishmentsTotal)} of {punishmentsTotal}
+                  </span>
+                  <TablePager page={punishmentsPage} totalPages={punishmentsTotalPages} onPageChange={setPunishmentsPage} />
+                </div>
+              </>
+            )}
           </Card>
 
           {/* Recent actions */}
@@ -316,7 +349,7 @@ export function PlayerDetail() {
               <div className="flex items-center gap-2">
                 <Activity size={14} className="text-primary" />
                 <CardTitle>Recent Actions</CardTitle>
-                <Badge variant="secondary" className="text-[10px]">{actions.length}</Badge>
+                <Badge variant="secondary" className="text-[10px]">{actionsTotal}</Badge>
               </div>
               <CardDescription>Audit log — click a row to expand its payload</CardDescription>
             </CardHeader>
@@ -362,7 +395,7 @@ export function PlayerDetail() {
                     </span>
                   </div>
                 ) : (
-                  pagedActions.map((a) => (
+                  actions.map((a) => (
                     <Collapsible key={a.logId} className="rounded-lg border border-border bg-card/40">
                       <CollapsibleTrigger className="group w-full flex items-center gap-3 px-3 py-2.5 text-left">
                         <ChevronDown
@@ -386,7 +419,7 @@ export function PlayerDetail() {
                   ))
                 )}
                 {Array.from(
-                  { length: ACTIONS_PAGE_SIZE - (actions.length === 0 ? 1 : pagedActions.length) },
+                  { length: ACTIONS_PAGE_SIZE - (actions.length === 0 ? 1 : actions.length) },
                   (_, i) => (
                     <div
                       key={`filler-${i}`}
@@ -409,37 +442,9 @@ export function PlayerDetail() {
                 <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
                   <span className="text-xs font-mono text-muted-foreground">
                     Showing {(actionsPage - 1) * ACTIONS_PAGE_SIZE + 1}
-                    –{Math.min(actionsPage * ACTIONS_PAGE_SIZE, actions.length)} of {actions.length}
+                    –{Math.min(actionsPage * ACTIONS_PAGE_SIZE, actionsTotal)} of {actionsTotal}
                   </span>
-                  <div className="flex items-center gap-1.5">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setActionsPage((p) => Math.max(1, p - 1))}
-                      disabled={actionsPage === 1}
-                    >
-                      <ChevronLeft size={13} />
-                    </Button>
-                    {Array.from({ length: actionsTotalPages }, (_, i) => i + 1).map((n) => (
-                      <Button
-                        key={n}
-                        size="sm"
-                        variant={actionsPage === n ? "default" : "ghost"}
-                        onClick={() => setActionsPage(n)}
-                        className="w-7 h-7 p-0 text-xs font-mono"
-                      >
-                        {n}
-                      </Button>
-                    ))}
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setActionsPage((p) => Math.min(actionsTotalPages, p + 1))}
-                      disabled={actionsPage === actionsTotalPages}
-                    >
-                      <ChevronRight size={13} />
-                    </Button>
-                  </div>
+                  <TablePager page={actionsPage} totalPages={actionsTotalPages} onPageChange={setActionsPage} />
                 </div>
               )}
             </CardContent>

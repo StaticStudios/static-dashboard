@@ -1,11 +1,6 @@
-import { useEffect, useState } from "react";
-import {
-  fetchPlayerActionIds,
-  fetchPlayerActions,
-  fetchPlayerProfile,
-  fetchPlayers,
-} from "../api/players";
-import type { AuditAction, PlayerProfile, PlayerSummary } from "../api/types";
+import {useEffect, useState} from "react";
+import {fetchPlayerActionIds, fetchPlayerActions, fetchPlayerProfile, fetchPlayers,} from "../api/players";
+import type {AuditAction, PlayerProfile, PlayerSummary} from "../api/types";
 
 /** Debounced, server-side player search. Blank query returns the most-recently-seen players. */
 export function usePlayers(query: string) {
@@ -67,25 +62,36 @@ export function usePlayerProfile(id: string | null) {
 
 export function usePlayerActions(
   id: string | null,
-  filters: { actionId?: string; from?: number; to?: number; limit?: number }
+  filters: { actionId?: string; from?: number; to?: number; page?: number; limit?: number }
 ) {
   const [actions, setActions] = useState<AuditAction[]>([]);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
-  const { actionId, from, to, limit } = filters;
+  const { actionId, from, to, page = 1, limit } = filters;
 
   useEffect(() => {
     if (!id) {
       setActions([]);
+      setTotalElements(0);
+      setTotalPages(1);
       return;
     }
     let cancelled = false;
     setLoading(true);
-    fetchPlayerActions(id, { actionId, from, to, limit })
-      .then((list) => {
-        if (!cancelled) setActions(list);
+    fetchPlayerActions(id, { actionId, from, to, page: page - 1, limit })
+      .then((result) => {
+        if (cancelled) return;
+        setActions(result.content);
+        setTotalElements(result.totalElements);
+        setTotalPages(Math.max(1, result.totalPages));
       })
       .catch(() => {
-        if (!cancelled) setActions([]);
+        if (!cancelled) {
+          setActions([]);
+          setTotalElements(0);
+          setTotalPages(1);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -93,9 +99,9 @@ export function usePlayerActions(
     return () => {
       cancelled = true;
     };
-  }, [id, actionId, from, to, limit]);
+  }, [id, actionId, from, to, page, limit]);
 
-  return { actions, loading };
+  return { actions, totalElements, totalPages, loading };
 }
 
 /** Distinct action-ids recorded for a player — used to populate the filter dropdown. */

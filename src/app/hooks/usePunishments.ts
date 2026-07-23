@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { fetchPunishment, fetchPunishments } from "../api/punishments";
-import type { PunishmentResponse } from "../api/types";
+import {useEffect, useState} from "react";
+import {fetchPunishment, fetchPunishments} from "../api/punishments";
+import type {PunishmentResponse, PunishmentType} from "../api/types";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -58,18 +58,45 @@ export function usePunishmentLookup(id: string) {
   return { result, status };
 }
 
-export function usePunishments(limit = 100) {
+export function usePunishments(opts: {
+  page: number;
+  limit: number;
+  type?: string;
+  target?: string[];
+  targetName?: string;
+  issuerName?: string;
+  status?: "active" | "expired";
+}) {
+  const { page, limit, type, target, targetName, issuerName, status } = opts;
   const [punishments, setPunishments] = useState<PunishmentResponse[]>([]);
-  const [total, setTotal] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    fetchPunishments({ limit })
-      .then((page) => {
+    setLoading(true);
+    fetchPunishments({
+      page: page - 1,
+      limit,
+      type: type ? [type as PunishmentType] : undefined,
+      target,
+      targetName,
+      issuerName,
+      status,
+    })
+      .then((p) => {
         if (cancelled) return;
-        setPunishments(page.content);
-        setTotal(page.totalElements);
+        setPunishments(p.content);
+        setTotalElements(p.totalElements);
+        setTotalPages(Math.max(1, p.totalPages));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPunishments([]);
+          setTotalElements(0);
+          setTotalPages(1);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -77,7 +104,7 @@ export function usePunishments(limit = 100) {
     return () => {
       cancelled = true;
     };
-  }, [limit]);
+  }, [page, limit, type, target, targetName, issuerName, status]);
 
-  return { punishments, total, loading };
+  return { punishments, totalElements, totalPages, loading };
 }
