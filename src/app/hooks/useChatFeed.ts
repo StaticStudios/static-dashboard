@@ -1,9 +1,7 @@
-import { useEffect, useRef, useState } from "react";
-import { fetchChatHistory } from "../api/chat";
-import { connectChatSocket } from "../api/websocket";
-import type { ChatLogEntry } from "../api/types";
-
-const isPublicMessage = (m: ChatLogEntry) => m.type !== "private_message";
+import {useEffect, useRef, useState} from "react";
+import {fetchChatHistory} from "../api/chat";
+import {connectChatSocket} from "../api/websocket";
+import type {ChatLogEntry} from "../api/types";
 
 export interface ChatFeedFilters {
   senders?: string[];
@@ -47,7 +45,7 @@ export function useChatFeed(filters: ChatFeedFilters = {}) {
     fetchChatHistory({ ...filters, page: 0, limit }).then((page) => {
       if (cancelled) return;
       // API returns newest-first; reverse so the feed reads oldest -> newest, top to bottom.
-      const history = [...page.content].reverse().filter(isPublicMessage);
+      const history = [...page.content].reverse();
       history.forEach((m) => seenIds.current.add(m.id));
       setMessages(history);
       setHasMore(!page.last);
@@ -55,7 +53,7 @@ export function useChatFeed(filters: ChatFeedFilters = {}) {
     });
 
     const disconnect = connectChatSocket((entry) => {
-      if (!isPublicMessage(entry) || seenIds.current.has(entry.id)) return;
+      if (seenIds.current.has(entry.id)) return;
       if (!matchesFilters(entry, filtersRef.current)) return;
       seenIds.current.add(entry.id);
       setMessages((prev) => [...prev, entry]);
@@ -76,7 +74,6 @@ export function useChatFeed(filters: ChatFeedFilters = {}) {
     const page = await fetchChatHistory({ ...filtersRef.current, page: nextPage, limit });
     const older = [...page.content]
       .reverse()
-      .filter(isPublicMessage)
       .filter((m) => !seenIds.current.has(m.id));
     older.forEach((m) => seenIds.current.add(m.id));
     pageRef.current = nextPage;
