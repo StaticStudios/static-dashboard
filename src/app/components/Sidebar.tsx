@@ -1,14 +1,14 @@
-import type { ReactNode } from "react";
-import { useLocation, useNavigate } from "react-router";
-import { LayoutDashboard, Users, Shield, MessageSquare, X } from "lucide-react";
+import type {ReactNode} from "react";
+import {useLocation, useNavigate} from "react-router";
+import {LayoutDashboard, MessageSquare, Shield, Users, X} from "lucide-react";
 import logoSrc from "../../public/logo.png";
-import { cn, initials, skinFaceUrl } from "../../lib/utils";
-import { Separator } from "./ui/separator";
-import { PlayerHead } from "./PlayerHead";
-import { usePunishments, getPunishmentStatus } from "../hooks/usePunishments";
-import { useChatMessageCount } from "../hooks/useChatMessageCount";
-import { useMe } from "../hooks/useMe";
-import type { TabKey } from "../types";
+import {cn, initials, skinFaceUrl} from "../../lib/utils";
+import {Separator} from "./ui/separator";
+import {PlayerHead} from "./PlayerHead";
+import {usePunishments} from "../hooks/usePunishments";
+import {useChatMessageCount} from "../hooks/useChatMessageCount";
+import {useMe} from "../hooks/useMe";
+import type {TabKey} from "../types";
 
 export const NAV_ITEMS: { key: TabKey; path: string; label: string; icon: ReactNode }[] = [
   { key: "dashboard",   path: "/dashboard",   label: "Dashboard",    icon: <LayoutDashboard size={15} /> },
@@ -20,7 +20,7 @@ export const NAV_ITEMS: { key: TabKey; path: string; label: string; icon: ReactN
 export function Sidebar({ onClose }: { onClose?: () => void }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { punishments } = usePunishments();
+  const { totalElements: activePunishments } = usePunishments({ page: 1, limit: 1, status: "active" });
   const chatCount = useChatMessageCount();
   const { me } = useMe();
   const meHeadUrl = skinFaceUrl(me?.skinTextureValue);
@@ -28,7 +28,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   const activeCounts: Record<TabKey, number | null> = {
     dashboard:   null,
     players:     null,
-    punishments: punishments.filter((p) => getPunishmentStatus(p) === "Active").length,
+    punishments: activePunishments,
     chat:        chatCount ?? 0,
   };
 

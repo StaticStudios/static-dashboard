@@ -1,25 +1,25 @@
-import { Ban, VolumeX, Shield, Zap, Users, Sword, Server, TrendingUp, Clock, Activity } from "lucide-react";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
-import { cn, initials } from "../../lib/utils";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/card";
-import { Badge } from "../components/ui/badge";
-import { Separator } from "../components/ui/separator";
-import { Progress } from "../components/ui/progress";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../components/ui/table";
+import {Activity, Ban, Clock, Server, Shield, Sword, TrendingUp, Users, VolumeX, Zap} from "lucide-react";
+import {Area, AreaChart, CartesianGrid, XAxis, YAxis} from "recharts";
+import {cn, initials} from "../../lib/utils";
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "../components/ui/card";
+import {Badge} from "../components/ui/badge";
+import {Separator} from "../components/ui/separator";
+import {Progress} from "../components/ui/progress";
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "../components/ui/table";
 import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
-  type ChartConfig,
+    type ChartConfig,
+    ChartContainer,
+    ChartLegend,
+    ChartLegendContent,
+    ChartTooltip,
+    ChartTooltipContent,
 } from "../components/ui/chart";
-import { PlayerAvatar } from "../components/PlayerAvatar";
-import { PlayerLink } from "../components/PlayerLink";
-import { PunishmentBadge } from "../components/PunishmentBadge";
-import { usePunishments, getPunishmentStatus } from "../hooks/usePunishments";
-import { usePlayerCounts } from "../hooks/usePlayerCounts";
-import { usePlayerCountHistory } from "../hooks/usePlayerCountHistory";
+import {PlayerAvatar} from "../components/PlayerAvatar";
+import {PlayerLink} from "../components/PlayerLink";
+import {PunishmentBadge} from "../components/PunishmentBadge";
+import {usePunishments} from "../hooks/usePunishments";
+import {usePlayerCounts} from "../hooks/usePlayerCounts";
+import {usePlayerCountHistory} from "../hooks/usePlayerCountHistory";
 
 const chartConfig = {
   network: { label: "Network", color: "var(--chart-1)" },
@@ -28,7 +28,11 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function DashboardTab() {
-  const { punishments, total } = usePunishments();
+  const { totalElements: total } = usePunishments({ page: 1, limit: 1 });
+  const { totalElements: activePunishments } = usePunishments({ page: 1, limit: 1, status: "active" });
+  const { totalElements: activeBans } = usePunishments({ page: 1, limit: 1, status: "active", type: ["BAN", "IP_BAN"] });
+  const { totalElements: activeMutes } = usePunishments({ page: 1, limit: 1, status: "active", type: "MUTE" });
+  const { punishments: recentPunishments } = usePunishments({ page: 1, limit: 5 });
   const counts = usePlayerCounts();
   const history = usePlayerCountHistory();
 
@@ -65,8 +69,6 @@ export function DashboardTab() {
     },
   ];
 
-  const activePunishments = punishments.filter((p) => getPunishmentStatus(p) === "Active").length;
-
   return (
     <div className="space-y-6">
       <div>
@@ -77,8 +79,8 @@ export function DashboardTab() {
       {/* Quick stats strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: "Active Bans", value: punishments.filter(p => (p.type === "BAN" || p.type === "IP_BAN") && getPunishmentStatus(p) === "Active").length, icon: <Ban size={13} />, color: "text-red-400" },
-          { label: "Active Mutes", value: punishments.filter(p => p.type === "MUTE" && getPunishmentStatus(p) === "Active").length, icon: <VolumeX size={13} />, color: "text-amber-400" },
+          { label: "Active Bans", value: activeBans, icon: <Ban size={13} />, color: "text-red-400" },
+          { label: "Active Mutes", value: activeMutes, icon: <VolumeX size={13} />, color: "text-amber-400" },
           { label: "Total Punishments", value: total, icon: <Shield size={13} />, color: "text-blue-400" },
           { label: "Active Actions", value: activePunishments, icon: <Zap size={13} />, color: "text-primary" },
         ].map((s) => (
@@ -219,7 +221,7 @@ export function DashboardTab() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {punishments.slice(0, 5).map((p, i) => (
+            {recentPunishments.map((p, i) => (
               <TableRow key={p.id}>
                 <TableCell>
                   <PlayerLink id={p.targetId} name={p.targetName} className="gap-2.5">

@@ -61,7 +61,7 @@ export function usePunishmentLookup(id: string) {
 export function usePunishments(opts: {
   page: number;
   limit: number;
-  type?: string;
+  type?: string | string[];
   target?: string[];
   targetName?: string;
   issuerName?: string;
@@ -73,13 +73,18 @@ export function usePunishments(opts: {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
+  // Stringify array-valued opts for the effect's dependency list — `type`/`target` are often
+  // passed as fresh array literals on every render, which would otherwise refetch in a loop.
+  const typeKey = Array.isArray(type) ? type.join(",") : type ?? "";
+  const targetKey = target ? target.join(",") : "";
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     fetchPunishments({
       page: page - 1,
       limit,
-      type: type ? [type as PunishmentType] : undefined,
+      type: Array.isArray(type) ? (type as PunishmentType[]) : type ? [type as PunishmentType] : undefined,
       target,
       targetName,
       issuerName,
@@ -104,7 +109,7 @@ export function usePunishments(opts: {
     return () => {
       cancelled = true;
     };
-  }, [page, limit, type, target, targetName, issuerName, status]);
+  }, [page, limit, typeKey, targetKey, targetName, issuerName, status]);
 
   return { punishments, totalElements, totalPages, loading };
 }
