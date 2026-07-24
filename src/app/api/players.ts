@@ -1,5 +1,5 @@
 import {apiFetch} from "./client";
-import type {AuditAction, Page, PlayerAlt, PlayerProfile, PlayerSummary} from "./types";
+import type {AuditAction, ConversationBlock, Page, PlayerAlt, PlayerProfile, PlayerSummary} from "./types";
 
 export function fetchPlayers(query?: string, limit = 50) {
   return apiFetch<PlayerSummary[]>("/api/v1/internal/players", { query, limit });
@@ -28,4 +28,15 @@ export function fetchPlayerActionIds(id: string) {
 
 export function fetchPlayerAlts(id: string) {
   return apiFetch<PlayerAlt[]>(`/api/v1/internal/players/${id}/alts`);
+}
+
+export function fetchPlayerConversations(
+  id: string,
+  opts: { contextSize?: number; page?: number; limit?: number } = {}
+) {
+  return apiFetch<Page<ConversationBlock>>(`/api/v1/internal/players/${id}/conversations`, {
+    contextSize: opts.contextSize,
+    page: opts.page,
+    limit: opts.limit,
+  });
 }

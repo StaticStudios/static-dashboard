@@ -10,6 +10,7 @@ import {
   Fingerprint,
   Gamepad2,
   Home,
+  MessageSquare,
   Shield,
   Users as UsersIcon,
 } from "lucide-react";
@@ -26,7 +27,14 @@ import {PlayerAvatar} from "../../components/PlayerAvatar";
 import {PlayerLink} from "../../components/PlayerLink";
 import {PunishmentBadge} from "../../components/PunishmentBadge";
 import {TablePager} from "../../components/TablePager";
-import {usePlayerActionIds, usePlayerActions, usePlayerAlts, usePlayerProfile} from "../../hooks/usePlayers";
+import {ChatMessageRow, SERVER_COLORS} from "../../components/ChatMessageRow";
+import {
+  usePlayerActionIds,
+  usePlayerActions,
+  usePlayerAlts,
+  usePlayerConversations,
+  usePlayerProfile,
+} from "../../hooks/usePlayers";
 import {getPunishmentStatus} from "../../hooks/usePunishments";
 import {fetchPunishments} from "../../api/punishments";
 import type {PlayerAlt, PunishmentResponse} from "../../api/types";
@@ -78,6 +86,7 @@ function num(n: number): string {
 
 const ACTIONS_PAGE_SIZE = 15;
 const PUNISHMENTS_PAGE_SIZE = 5;
+const CONVERSATIONS_PAGE_SIZE = 5;
 
 function prettyJson(raw: string | null): string {
   if (!raw) return "—";
@@ -225,6 +234,21 @@ export function PlayerDetail() {
   useEffect(() => {
     setActionsPage(1);
   }, [actionFilter, fromInput, toInput]);
+
+  // Recent conversations
+  const [contextSizeInput, setContextSizeInput] = useState("5");
+  const [conversationsPage, setConversationsPage] = useState(1);
+  const contextSize = Math.min(Math.max(parseInt(contextSizeInput, 10) || 5, 1), 25);
+  const {
+    blocks: conversationBlocks,
+    totalElements: conversationsTotal,
+    totalPages: conversationsTotalPages,
+    loading: conversationsLoading,
+  } = usePlayerConversations(id, { contextSize, page: conversationsPage, limit: CONVERSATIONS_PAGE_SIZE });
+
+  useEffect(() => {
+    setConversationsPage(1);
+  }, [contextSize]);
 
   return (
     <div className="space-y-6">
@@ -512,6 +536,81 @@ export function PlayerDetail() {
                     –{Math.min(actionsPage * ACTIONS_PAGE_SIZE, actionsTotal)} of {actionsTotal}
                   </span>
                   <TablePager page={actionsPage} totalPages={actionsTotalPages} onPageChange={setActionsPage} />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Recent conversations */}
+          <Card className="overflow-hidden">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <MessageSquare size={14} className="text-primary" />
+                <CardTitle>Recent Conversations</CardTitle>
+                <Badge variant="secondary" className="text-[10px]">{conversationsTotal}</Badge>
+              </div>
+              <CardDescription>Chat context around messages this player sent or received</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-1.5 mb-4">
+                <span className="text-[10px] font-mono text-muted-foreground">Context size</span>
+                <Input
+                  type="number"
+                  min={1}
+                  max={25}
+                  value={contextSizeInput}
+                  onChange={(e) => setContextSizeInput(e.target.value)}
+                  className="font-mono text-xs w-[80px]"
+                />
+                <span className="text-[10px] font-mono text-muted-foreground">messages before/after</span>
+              </div>
+
+              <div className="space-y-4">
+                {conversationBlocks.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-border/60 px-3 py-2.5 flex items-center justify-center">
+                    <span className="text-xs font-mono text-muted-foreground">
+                      {conversationsLoading ? "Loading conversations…" : "No chat activity found."}
+                    </span>
+                  </div>
+                ) : (
+                  conversationBlocks.map((block, i) => {
+                    // A block is a gamemode block (possibly with DM context folded in) if any message
+                    // in it has a serverGroup; otherwise it's a standalone DM-only block.
+                    const gamemodeMessage = block.messages.find((m) => m.serverGroup);
+                    const lastTimestamp = block.messages[block.messages.length - 1]?.timestamp;
+                    return (
+                      <div key={i} className="rounded-lg border border-border overflow-hidden">
+                        <div className="px-3 py-2 bg-muted/30 flex items-center justify-between">
+                          <span className="text-[10px] font-mono font-semibold">
+                            {gamemodeMessage?.serverGroup ? (
+                              <span className={cn(SERVER_COLORS[gamemodeMessage.serverGroup.toLowerCase()] ?? "text-muted-foreground")}>
+                                {gamemodeMessage.serverGroup}
+                              </span>
+                            ) : (
+                              <span className="text-pink-400">Direct Messages</span>
+                            )}
+                          </span>
+                          {lastTimestamp && (
+                            <span className="text-[10px] font-mono text-muted-foreground">
+                              {new Date(lastTimestamp).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                        <div className="p-2 space-y-0.5">
+                          {block.messages.map((m) => (
+                            <ChatMessageRow key={m.id} message={m} highlighted={block.anchorMessageIds.includes(m.id)} />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {conversationsTotalPages > 1 && (
+                <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
+                  <span className="text-xs font-mono text-muted-foreground">{conversationsTotal} messages by this player</span>
+                  <TablePager page={conversationsPage} totalPages={conversationsTotalPages} onPageChange={setConversationsPage} />
                 </div>
               )}
             </CardContent>

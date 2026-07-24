@@ -1,7 +1,6 @@
 import {Fragment, useEffect, useRef, useState} from "react";
 import {MessageSquare, Search} from "lucide-react";
 import type {DateRange} from "react-day-picker";
-import {cn} from "../../lib/utils";
 import {Card} from "../components/ui/card";
 import {Badge} from "../components/ui/badge";
 import {Separator} from "../components/ui/separator";
@@ -10,22 +9,9 @@ import {SearchInput} from "../components/SearchInput";
 import {GamemodeFilter} from "../components/GamemodeFilter";
 import {SenderMultiSelect} from "../components/SenderMultiSelect";
 import {DateRangeFilter} from "../components/DateRangeFilter";
-import {SimpleTooltip} from "../components/SimpleTooltip";
+import {ChatMessageRow} from "../components/ChatMessageRow";
 import {useChatFeed} from "../hooks/useChatFeed";
 import {useServerGroups} from "../hooks/useServerGroups";
-
-const SERVER_COLORS: Record<string, string> = {
-  hub: "text-violet-400",
-  skyblock: "text-blue-400",
-  prison: "text-amber-400",
-};
-
-// "public" chat is the default/unlabeled case — only these get a second [Chatroom] badge.
-const CHATROOM_LABELS: Record<string, { label: string; color: string }> = {
-  staff: { label: "Staff", color: "text-red-400" },
-  gang: { label: "Gang", color: "text-orange-400" },
-  island: { label: "Island", color: "text-emerald-400" },
-};
 
 export function ChatTab() {
   const [search, setSearch] = useState("");
@@ -152,8 +138,6 @@ export function ChatTab() {
               </div>
             ) : (
               filtered.map((msg, i) => {
-                const isPrivate = msg.type === "private_message";
-                const chatroomInfo = msg.chatroom ? CHATROOM_LABELS[msg.chatroom.toLowerCase()] : undefined;
                 const msgDate = new Date(msg.timestamp);
                 const showDivider = i === 0 || !isSameDay(msgDate, new Date(filtered[i - 1].timestamp));
                 return (
@@ -167,40 +151,7 @@ export function ChatTab() {
                         <Separator className="flex-1" />
                       </div>
                     )}
-                    <div className="flex items-start gap-3 px-3 py-2 rounded-lg hover:bg-muted/30 transition-colors group">
-                      <SimpleTooltip content={msgDate.toLocaleString([], { dateStyle: "full", timeStyle: "medium" })}>
-                        <span className="text-[10px] font-mono text-muted-foreground/50 w-12 shrink-0 pt-0.5 tabular-nums select-none">
-                          {msgDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </span>
-                      </SimpleTooltip>
-                      <p className="text-xs font-mono leading-relaxed">
-                        {isPrivate ? (
-                          <span className="font-semibold mr-1.5 text-pink-400">[DM]</span>
-                        ) : (
-                          <>
-                            {msg.serverGroup && (
-                              <span className={cn("font-semibold mr-1.5", SERVER_COLORS[msg.serverGroup.toLowerCase()] ?? "text-muted-foreground")}>
-                                [{msg.serverGroup}]
-                              </span>
-                            )}
-                            {chatroomInfo && (
-                              <span className={cn("font-semibold mr-1.5", chatroomInfo.color)}>
-                                [{chatroomInfo.label}]
-                              </span>
-                            )}
-                          </>
-                        )}
-                        <span className="text-foreground font-semibold mr-1">{msg.senderName}</span>
-                        {isPrivate && msg.recipientName && (
-                          <>
-                            <span className="text-muted-foreground mr-1">→</span>
-                            <span className="text-foreground font-semibold mr-1">{msg.recipientName}</span>
-                          </>
-                        )}
-                        <span className="text-muted-foreground mr-1">:</span>
-                        <span className="text-foreground/75">{msg.content}</span>
-                      </p>
-                    </div>
+                    <ChatMessageRow message={msg} />
                   </Fragment>
                 );
               })

@@ -52,6 +52,11 @@ export interface ChatLogEntry {
   type: string | null;
 }
 
+export interface ConversationBlock {
+  messages: ChatLogEntry[];
+  anchorMessageIds: string[];
+}
+
 export type ServerCountType = "PROXY" | "SKYBLOCK" | "PRISON" | "HUB";
 
 export interface PlayerSummary {

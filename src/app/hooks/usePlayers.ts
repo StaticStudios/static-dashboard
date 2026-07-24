@@ -3,10 +3,11 @@ import {
     fetchPlayerActionIds,
     fetchPlayerActions,
     fetchPlayerAlts,
+    fetchPlayerConversations,
     fetchPlayerProfile,
     fetchPlayers,
 } from "../api/players";
-import type {AuditAction, PlayerAlt, PlayerProfile, PlayerSummary} from "../api/types";
+import type {AuditAction, ConversationBlock, PlayerAlt, PlayerProfile, PlayerSummary} from "../api/types";
 
 /** Debounced, server-side player search. Blank query returns the most-recently-seen players. */
 export function usePlayers(query: string) {
@@ -138,6 +139,51 @@ export function usePlayerAlts(id: string | null) {
   }, [id]);
 
   return { alts, loading };
+}
+
+/** Recent Conversations: paginated context windows around every message this player sent/received. */
+export function usePlayerConversations(
+  id: string | null,
+  filters: { contextSize: number; page?: number; limit?: number }
+) {
+  const [blocks, setBlocks] = useState<ConversationBlock[]>([]);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const { contextSize, page = 1, limit } = filters;
+
+  useEffect(() => {
+    if (!id) {
+      setBlocks([]);
+      setTotalElements(0);
+      setTotalPages(1);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    fetchPlayerConversations(id, { contextSize, page: page - 1, limit })
+      .then((result) => {
+        if (cancelled) return;
+        setBlocks(result.content);
+        setTotalElements(result.totalElements);
+        setTotalPages(Math.max(1, result.totalPages));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setBlocks([]);
+          setTotalElements(0);
+          setTotalPages(1);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, contextSize, page, limit]);
+
+  return { blocks, totalElements, totalPages, loading };
 }
 
 /** Distinct action-ids recorded for a player — used to populate the filter dropdown. */
