@@ -18,13 +18,13 @@ export function GamemodeFilter({
       className="flex-wrap"
     >
       {groups.map((g) => (
-        <ToggleGroupItem key={g} value={g} className="font-mono text-xs px-3">
+        <ToggleGroupItem key={g} value={g} className="font-mono text-xs px-4">
           {g.charAt(0).toUpperCase() + g.slice(1)}
         </ToggleGroupItem>
       ))}
       <ToggleGroupItem
         value="dm"
-        className="font-mono text-xs px-3 text-pink-400 data-[state=on]:text-pink-400"
+        className="font-mono text-xs px-1 text-pink-400 data-[state=on]:text-pink-400"
       >
         DM
       </ToggleGroupItem>
