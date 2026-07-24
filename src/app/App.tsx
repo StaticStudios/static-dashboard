@@ -1,16 +1,16 @@
-import { useState } from "react";
-import { Navigate, Route, Routes, useLocation } from "react-router";
-import { Menu } from "lucide-react";
-import { cn } from "../lib/utils";
-import { Button } from "./components/ui/button";
-import { Separator } from "./components/ui/separator";
-import { Sidebar, NAV_ITEMS } from "./components/Sidebar";
-import { DashboardTab } from "./tabs/DashboardTab";
-import { PlayersTab } from "./tabs/PlayersTab";
-import { PlayerDetail } from "./tabs/players/PlayerDetail";
-import { PunishmentsTab } from "./tabs/PunishmentsTab";
-import { ChatTab } from "./tabs/ChatTab";
-import { usePlayerCounts } from "./hooks/usePlayerCounts";
+import {useState} from "react";
+import {Navigate, Route, Routes, useLocation} from "react-router";
+import {Menu} from "lucide-react";
+import {cn} from "../lib/utils";
+import {Button} from "./components/ui/button";
+import {Separator} from "./components/ui/separator";
+import {NAV_ITEMS, Sidebar} from "./components/Sidebar";
+import {DashboardTab} from "./tabs/DashboardTab";
+import {PlayersTab} from "./tabs/PlayersTab";
+import {PlayerDetail} from "./tabs/players/PlayerDetail";
+import {PunishmentsTab} from "./tabs/PunishmentsTab";
+import {ChatTab} from "./tabs/ChatTab";
+import {usePlayerCounts} from "./hooks/usePlayerCounts";
 
 export default function App() {
   const [mobileSidebar, setMobileSidebar] = useState(false);
@@ -19,6 +19,7 @@ export default function App() {
   const activeLabel = NAV_ITEMS.find(
     (n) => pathname === n.path || pathname.startsWith(`${n.path}/`)
   )?.label;
+  const isPlayerDetail = pathname.startsWith("/players/");
 
   return (
     <div
@@ -86,7 +87,7 @@ export default function App() {
 
         {/* Content */}
         <main className="flex-1 overflow-y-auto">
-          <div className="max-w-6xl mx-auto p-5 md:p-8">
+          <div className={cn("mx-auto p-5 md:p-8", isPlayerDetail ? "max-w-7xl" : "max-w-6xl")}>
             <Routes>
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<DashboardTab />} />
