@@ -1,5 +1,5 @@
-import { apiFetch } from "./client";
-import type { ChatLogEntry, Page } from "./types";
+import {apiFetch} from "./client";
+import type {ChatLogEntry, Page} from "./types";
 
 export function fetchChatHistory(opts: {
   page?: number;
@@ -8,6 +8,7 @@ export function fetchChatHistory(opts: {
   senders?: string[];
   from?: number;
   to?: number;
+  includeDms?: boolean;
 } = {}) {
   return apiFetch<Page<ChatLogEntry>>("/api/v1/internal/chatlogs/chat", {
     page: opts.page,
@@ -16,6 +17,7 @@ export function fetchChatHistory(opts: {
     users: opts.senders,
     from: opts.from,
     to: opts.to,
+    includeDms: opts.includeDms,
   });
 }
 

@@ -7,7 +7,7 @@ import {Badge} from "../components/ui/badge";
 import {Separator} from "../components/ui/separator";
 import {ScrollArea} from "../components/ui/scroll-area";
 import {SearchInput} from "../components/SearchInput";
-import {FilterSelect} from "../components/FilterSelect";
+import {GamemodeFilter} from "../components/GamemodeFilter";
 import {SenderMultiSelect} from "../components/SenderMultiSelect";
 import {DateRangeFilter} from "../components/DateRangeFilter";
 import {useChatFeed} from "../hooks/useChatFeed";
@@ -28,16 +28,20 @@ const CHATROOM_LABELS: Record<string, { label: string; color: string }> = {
 
 export function ChatTab() {
   const [search, setSearch] = useState("");
-  const [serverFilter, setServerFilter] = useState("all");
+  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [selectedSenders, setSelectedSenders] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const serverGroups = useServerGroups();
 
+  const gamemodes = selectedFilters.filter((f) => f !== "dm");
+  const includeDms = selectedFilters.includes("dm");
+
   const { messages, loading, loadingMore, hasMore, loadOlder } = useChatFeed({
     senders: selectedSenders.length ? selectedSenders : undefined,
-    serverGroups: serverFilter === "all" ? undefined : [serverFilter],
+    serverGroups: gamemodes.length ? gamemodes : undefined,
+    includeDms,
     from: dateRange?.from ? startOfDay(dateRange.from).getTime() : undefined,
     to: dateRange?.to ? endOfDay(dateRange.to).getTime() : undefined,
   });
@@ -57,7 +61,7 @@ export function ChatTab() {
   // Reset to "follow the bottom" whenever the active filters change, since the feed resets too.
   useEffect(() => {
     wasAtBottomRef.current = true;
-  }, [selectedSenders, serverFilter, dateRange]);
+  }, [selectedSenders, selectedFilters, dateRange]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -104,21 +108,11 @@ export function ChatTab() {
             onChange={setSearch}
             icon={<Search size={14} />}
           />
-          <div className="w-[150px] shrink-0">
-            <FilterSelect
-              value={serverFilter}
-              onValueChange={setServerFilter}
-              placeholder="Server"
-              options={[
-                { value: "all", label: "All Servers" },
-                ...serverGroups.map((g) => ({ value: g.toLowerCase(), label: g.charAt(0).toUpperCase() + g.slice(1) })),
-              ]}
-            />
-          </div>
           <DateRangeFilter value={dateRange} onChange={setDateRange} />
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap items-center">
           <SenderMultiSelect selected={selectedSenders} onChange={setSelectedSenders} />
+          <GamemodeFilter groups={serverGroups} selected={selectedFilters} onChange={setSelectedFilters} />
         </div>
       </Card>
 
@@ -131,7 +125,11 @@ export function ChatTab() {
             <MessageSquare size={13} className="text-primary" />
             <span className="text-xs font-mono text-muted-foreground">
               <span className="text-foreground font-semibold">{filtered.length}</span> messages
-              {serverFilter !== "all" && <span className="text-primary ml-1">· {serverFilter.charAt(0).toUpperCase() + serverFilter.slice(1)}</span>}
+              {selectedFilters.length > 0 && (
+                <span className="text-primary ml-1">
+                  · {selectedFilters.map((f) => (f === "dm" ? "DM" : f.charAt(0).toUpperCase() + f.slice(1))).join(", ")}
+                </span>
+              )}
             </span>
           </div>
           <Badge variant="outline" className="text-[10px] font-mono gap-1.5">

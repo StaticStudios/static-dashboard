@@ -9,11 +9,18 @@ export interface ChatFeedFilters {
   from?: number;
   to?: number;
   limit?: number;
+  includeDms?: boolean;
 }
 
 function matchesFilters(m: ChatLogEntry, filters: ChatFeedFilters): boolean {
   if (filters.senders?.length && !filters.senders.includes(m.senderName)) return false;
-  if (filters.serverGroups?.length && (!m.serverGroup || !filters.serverGroups.includes(m.serverGroup))) return false;
+  const isDm = m.type === "private_message";
+  if (filters.serverGroups?.length) {
+    const inGroup = m.serverGroup != null && filters.serverGroups.includes(m.serverGroup);
+    if (!inGroup && !(filters.includeDms && isDm)) return false;
+  } else if (filters.includeDms && !isDm) {
+    return false;
+  }
   const ts = new Date(m.timestamp).getTime();
   if (filters.from != null && ts < filters.from) return false;
   if (filters.to != null && ts > filters.to) return false;
