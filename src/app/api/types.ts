@@ -52,6 +52,12 @@ export interface ChatLogEntry {
   type: string | null;
 }
 
+export interface CursorPage<T> {
+  content: T[];
+  hasBefore: boolean;
+  hasAfter: boolean;
+}
+
 export interface ConversationBlock {
   messages: ChatLogEntry[];
   anchorMessageIds: string[];

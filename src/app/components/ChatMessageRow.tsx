@@ -15,15 +15,26 @@ export const CHATROOM_LABELS: Record<string, { label: string; color: string }> =
   island: { label: "Island", color: "text-emerald-400" },
 };
 
-export function ChatMessageRow({ message, highlighted }: { message: ChatLogEntry; highlighted?: boolean }) {
+export function ChatMessageRow({
+  message,
+  highlighted,
+  onClick,
+}: {
+  message: ChatLogEntry;
+  highlighted?: boolean;
+  onClick?: () => void;
+}) {
   const isPrivate = message.type === "private_message";
   const chatroomInfo = message.chatroom ? CHATROOM_LABELS[message.chatroom.toLowerCase()] : undefined;
   const msgDate = new Date(message.timestamp);
 
   return (
     <div
+      data-message-id={message.id}
+      onClick={onClick}
       className={cn(
         "flex items-start gap-3 px-3 py-2 rounded-lg hover:bg-muted/30 transition-colors group",
+        onClick && "cursor-pointer",
         highlighted && "bg-primary/5 border border-primary/20"
       )}
     >

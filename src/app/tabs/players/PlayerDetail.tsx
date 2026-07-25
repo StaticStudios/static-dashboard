@@ -626,7 +626,11 @@ export function PlayerDetail() {
                                     <Separator className="flex-1" />
                                   </div>
                                 )}
-                                <ChatMessageRow message={m} highlighted={block.anchorMessageIds.includes(m.id)} />
+                                <ChatMessageRow
+                                  message={m}
+                                  highlighted={block.anchorMessageIds.includes(m.id)}
+                                  onClick={() => navigate("/chat", {state: {anchorMessage: m}})}
+                                />
                               </Fragment>
                             );
                           })}

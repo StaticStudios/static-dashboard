@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useRef, useState} from "react";
+import {useLocation, useNavigate} from "react-router";
 import {MessageSquare, Search} from "lucide-react";
 import type {DateRange} from "react-day-picker";
 import {Card} from "../components/ui/card";
@@ -12,12 +13,71 @@ import {DateRangeFilter} from "../components/DateRangeFilter";
 import {ChatMessageRow} from "../components/ChatMessageRow";
 import {useChatFeed} from "../hooks/useChatFeed";
 import {useServerGroups} from "../hooks/useServerGroups";
+import type {ChatLogEntry} from "../api/types";
 
 export function ChatTab() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const incomingAnchor = (location.state as {anchorMessage?: ChatLogEntry} | null)?.anchorMessage;
+
+  // `anchor` only changes when a genuinely new anchor message arrives via navigation — clearing
+  // location.state afterward (see onAnchorConsumed) must NOT reset it, or the feed would snap
+  // back to "live" right after scrolling to it. This is the standard "adjust state during
+  // render" escape hatch for deriving state from a changing prop without an extra effect/render.
+  const [anchor, setAnchor] = useState(incomingAnchor);
+  const [lastIncomingAnchorId, setLastIncomingAnchorId] = useState(incomingAnchor?.id);
+  if (incomingAnchor && incomingAnchor.id !== lastIncomingAnchorId) {
+    setAnchor(incomingAnchor);
+    setLastIncomingAnchorId(incomingAnchor.id);
+  }
+
+  // Anchor navigations always land on the target message unmangled by whatever filters
+  // happened to be active from a previous visit to this tab.
   const [search, setSearch] = useState("");
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [selectedSenders, setSelectedSenders] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+
+  return (
+    <ChatFeedView
+      key={anchor?.id ?? "live"}
+      anchorMessage={anchor}
+      onAnchorConsumed={() => navigate(location.pathname, {replace: true})}
+      search={search}
+      setSearch={setSearch}
+      selectedFilters={selectedFilters}
+      setSelectedFilters={setSelectedFilters}
+      selectedSenders={selectedSenders}
+      setSelectedSenders={setSelectedSenders}
+      dateRange={dateRange}
+      setDateRange={setDateRange}
+    />
+  );
+}
+
+function ChatFeedView({
+  anchorMessage,
+  onAnchorConsumed,
+  search,
+  setSearch,
+  selectedFilters,
+  setSelectedFilters,
+  selectedSenders,
+  setSelectedSenders,
+  dateRange,
+  setDateRange,
+}: {
+  anchorMessage?: ChatLogEntry;
+  onAnchorConsumed: () => void;
+  search: string;
+  setSearch: (v: string) => void;
+  selectedFilters: string[];
+  setSelectedFilters: (v: string[]) => void;
+  selectedSenders: string[];
+  setSelectedSenders: (v: string[]) => void;
+  dateRange: DateRange | undefined;
+  setDateRange: (v: DateRange | undefined) => void;
+}) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const serverGroups = useServerGroups();
@@ -25,30 +85,37 @@ export function ChatTab() {
   const gamemodes = selectedFilters.filter((f) => f !== "dm");
   const includeDms = selectedFilters.includes("dm");
 
-  const { messages, loading, loadingMore, hasMore, loadOlder } = useChatFeed({
+  const {messages, loading, loadingMore, hasMore, hasNewer, loadOlder, loadNewer, anchored} = useChatFeed({
     senders: selectedSenders.length ? selectedSenders : undefined,
     serverGroups: gamemodes.length ? gamemodes : undefined,
     includeDms,
     from: dateRange?.from ? startOfDay(dateRange.from).getTime() : undefined,
     to: dateRange?.to ? endOfDay(dateRange.to).getTime() : undefined,
+    anchorId: anchorMessage?.id,
   });
 
   const filtered = messages.filter((m) => m.content.toLowerCase().includes(search.toLowerCase()));
 
-  const wasAtBottomRef = useRef(true);
+  const wasAtBottomRef = useRef(!anchored);
   const isPrependingRef = useRef(false);
   const prevScrollHeightRef = useRef(0);
   const hasMoreRef = useRef(hasMore);
+  const hasNewerRef = useRef(hasNewer);
   const loadingMoreRef = useRef(loadingMore);
   const loadOlderRef = useRef(loadOlder);
+  const loadNewerRef = useRef(loadNewer);
   hasMoreRef.current = hasMore;
+  hasNewerRef.current = hasNewer;
   loadingMoreRef.current = loadingMore;
   loadOlderRef.current = loadOlder;
+  loadNewerRef.current = loadNewer;
+
+  const scrolledToAnchorRef = useRef(false);
 
   // Reset to "follow the bottom" whenever the active filters change, since the feed resets too.
   useEffect(() => {
-    wasAtBottomRef.current = true;
-  }, [selectedSenders, selectedFilters, dateRange]);
+    if (!anchored) wasAtBottomRef.current = true;
+  }, [selectedSenders, selectedFilters, dateRange, anchored]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -59,6 +126,9 @@ export function ChatTab() {
         isPrependingRef.current = true;
         prevScrollHeightRef.current = el.scrollHeight;
         loadOlderRef.current();
+      }
+      if (wasAtBottomRef.current && hasNewerRef.current && !loadingMoreRef.current) {
+        loadNewerRef.current();
       }
     };
     el.addEventListener("scroll", handleScroll);
@@ -73,10 +143,20 @@ export function ChatTab() {
       isPrependingRef.current = false;
       return;
     }
+    if (anchorMessage && !scrolledToAnchorRef.current && !loading) {
+      const row = el.querySelector(`[data-message-id="${anchorMessage.id}"]`);
+      if (row) {
+        row.scrollIntoView({block: "center"});
+        scrolledToAnchorRef.current = true;
+        onAnchorConsumed();
+        return;
+      }
+    }
     if (wasAtBottomRef.current) {
       el.scrollTop = el.scrollHeight;
     }
-  }, [filtered.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered.length, loading]);
 
   return (
     <div className="space-y-6">
@@ -130,7 +210,7 @@ export function ChatTab() {
         <ScrollArea viewportRef={scrollRef} viewportClassName="h-[480px]">
           <div className="w-full p-3 space-y-0.5">
             {loadingMore && (
-              <div className="text-center text-[10px] font-mono text-muted-foreground/60 py-2">Loading older messages…</div>
+              <div className="text-center text-[10px] font-mono text-muted-foreground/60 py-2">Loading messages…</div>
             )}
             {filtered.length === 0 ? (
               <div className="flex items-center justify-center h-[456px] text-sm font-mono text-muted-foreground">
@@ -151,7 +231,7 @@ export function ChatTab() {
                         <Separator className="flex-1" />
                       </div>
                     )}
-                    <ChatMessageRow message={msg} />
+                    <ChatMessageRow message={msg} highlighted={msg.id === anchorMessage?.id} />
                   </Fragment>
                 );
               })
