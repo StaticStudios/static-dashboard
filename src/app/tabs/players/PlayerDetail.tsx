@@ -50,6 +50,11 @@ function formatPlaytime(seconds: number): string {
   return `${h}h ${m}m`;
 }
 
+/** Mine ranks are lettered A-Z (rank 0 = A), mirroring PrisonMineRankManager.getCapitalLetterForRank. */
+function mineRankLetter(rank: number): string {
+  return rank >= 0 && rank <= 25 ? String.fromCharCode(65 + rank) : "?";
+}
+
 const GAP_THRESHOLD_MS = 10 * 60 * 1000;
 
 function formatGapLabel(ms: number): string {
@@ -383,7 +388,7 @@ export function PlayerDetail() {
                     <StatRow label="Money" value={num(profile.prison.money)} />
                     <StatRow label="Tokens" value={num(profile.prison.tokens)} />
                     <StatRow label="Prestige Points" value={num(profile.prison.prestigePoints)} />
-                    <StatRow label="Prestige / Rank" value={`${profile.prison.prestige} / ${profile.prison.mineRank}`} />
+                    <StatRow label="Prestige / Rank" value={`${profile.prison.prestige} / ${mineRankLetter(profile.prison.mineRank)}`} />
                     <StatRow
                       label="Gang"
                       value={
