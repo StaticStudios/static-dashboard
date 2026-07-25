@@ -1,5 +1,5 @@
 import type {ReactNode} from "react";
-import {useEffect, useState} from "react";
+import {Fragment, useEffect, useState} from "react";
 import {useLocation, useNavigate, useParams} from "react-router";
 import {
   Activity,
@@ -46,6 +46,18 @@ function formatPlaytime(seconds: number): string {
   const m = Math.floor((seconds % 3600) / 60);
   if (h === 0) return `${m}m`;
   return `${h}h ${m}m`;
+}
+
+const GAP_THRESHOLD_MS = 10 * 60 * 1000;
+
+function formatGapLabel(ms: number): string {
+  const minutes = Math.round(ms / 60000);
+  if (minutes < 60) return `${minutes}m gap`;
+  const hours = Math.floor(minutes / 60);
+  const remMinutes = minutes % 60;
+  if (hours < 24) return remMinutes ? `${hours}h ${remMinutes}m gap` : `${hours}h gap`;
+  const days = Math.floor(hours / 24);
+  return `${days}d gap`;
 }
 
 const ACTION_ID_COLORS = [
@@ -597,9 +609,27 @@ export function PlayerDetail() {
                           )}
                         </div>
                         <div className="p-2 space-y-0.5">
-                          {block.messages.map((m) => (
-                            <ChatMessageRow key={m.id} message={m} highlighted={block.anchorMessageIds.includes(m.id)} />
-                          ))}
+                          {block.messages.map((m, j) => {
+                            const gapMs =
+                              j > 0
+                                ? new Date(m.timestamp).getTime() - new Date(block.messages[j - 1].timestamp).getTime()
+                                : 0;
+                            const showGap = j > 0 && gapMs >= GAP_THRESHOLD_MS;
+                            return (
+                              <Fragment key={m.id}>
+                                {showGap && (
+                                  <div className="flex items-center gap-3 py-1.5 px-1">
+                                    <Separator className="flex-1" />
+                                    <span className="text-[10px] font-mono text-muted-foreground/60 shrink-0">
+                                      {formatGapLabel(gapMs)}
+                                    </span>
+                                    <Separator className="flex-1" />
+                                  </div>
+                                )}
+                                <ChatMessageRow message={m} highlighted={block.anchorMessageIds.includes(m.id)} />
+                              </Fragment>
+                            );
+                          })}
                         </div>
                       </div>
                     );
