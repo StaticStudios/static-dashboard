@@ -1,9 +1,10 @@
 import {Fragment, useEffect, useRef, useState} from "react";
 import {useLocation, useNavigate} from "react-router";
-import {MessageSquare, Search} from "lucide-react";
+import {ArrowDownToLine, MessageSquare, Search} from "lucide-react";
 import type {DateRange} from "react-day-picker";
 import {Card} from "../components/ui/card";
 import {Badge} from "../components/ui/badge";
+import {Button} from "../components/ui/button";
 import {Separator} from "../components/ui/separator";
 import {ScrollArea} from "../components/ui/scroll-area";
 import {SearchInput} from "../components/SearchInput";
@@ -43,6 +44,13 @@ export function ChatTab() {
       key={anchor?.id ?? "live"}
       anchorMessage={anchor}
       onAnchorConsumed={() => navigate(location.pathname, {replace: true})}
+      onCatchUp={() => {
+        setSearch("");
+        setSelectedFilters([]);
+        setSelectedSenders([]);
+        setDateRange(undefined);
+        setAnchor(undefined);
+      }}
       search={search}
       setSearch={setSearch}
       selectedFilters={selectedFilters}
@@ -58,6 +66,7 @@ export function ChatTab() {
 function ChatFeedView({
   anchorMessage,
   onAnchorConsumed,
+  onCatchUp,
   search,
   setSearch,
   selectedFilters,
@@ -69,6 +78,7 @@ function ChatFeedView({
 }: {
   anchorMessage?: ChatLogEntry;
   onAnchorConsumed: () => void;
+  onCatchUp: () => void;
   search: string;
   setSearch: (v: string) => void;
   selectedFilters: string[];
@@ -199,10 +209,16 @@ function ChatFeedView({
               )}
             </span>
           </div>
-          <Badge variant="outline" className="text-[10px] font-mono gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-            Live
-          </Badge>
+          {anchored ? (
+            <Button variant="outline" size="sm" onClick={onCatchUp}>
+              <ArrowDownToLine size={10} /> Catch up
+            </Button>
+          ) : (
+            <Badge variant="outline" className="text-[10px] font-mono gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+              Live
+            </Badge>
+          )}
         </div>
         <Separator />
 
