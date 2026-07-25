@@ -7,9 +7,11 @@ import {
   Calendar,
   ChevronDown,
   Clock,
+  ExternalLink,
   Fingerprint,
   Gamepad2,
   Home,
+  Link2,
   MessageSquare,
   Shield,
   Users as UsersIcon,
@@ -37,7 +39,7 @@ import {
 } from "../../hooks/usePlayers";
 import {getPunishmentStatus} from "../../hooks/usePunishments";
 import {fetchPunishments} from "../../api/punishments";
-import type {PlayerAlt, PunishmentResponse} from "../../api/types";
+import type {PlayerAlt, PlayerProfile, PunishmentResponse} from "../../api/types";
 import {cn, initials} from "../../../lib/utils";
 
 function formatPlaytime(seconds: number): string {
@@ -151,6 +153,41 @@ function StatCard({ icon, label, value }: { icon: ReactNode; label: string; valu
         <p className="text-lg font-bold font-mono text-foreground leading-none truncate">{value}</p>
         <p className="text-[10px] font-mono text-muted-foreground mt-0.5">{label}</p>
       </div>
+    </Card>
+  );
+}
+
+/** Whether this player has linked a Discord account via the in-game /discord link command. */
+function DiscordStatusCard({ discord, loading }: { discord: PlayerProfile["discord"]; loading: boolean }) {
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Link2 size={14} className="text-primary" />
+          <CardTitle>Discord</CardTitle>
+        </div>
+      </CardHeader>
+      <Separator />
+      <CardContent className="p-3">
+        {loading ? (
+          <p className="text-xs font-mono text-muted-foreground py-2 px-2">Loading…</p>
+        ) : discord ? (
+          <div className="space-y-2 px-2 py-1">
+            <Badge className="text-emerald-400 border-emerald-500/20 bg-emerald-500/10">Linked</Badge>
+            <p className="text-xs font-mono text-foreground font-semibold truncate">{discord.username}</p>
+            <Button variant="outline" size="sm" asChild>
+              <a href={`https://discord.com/users/${discord.snowflake}`} target="_blank" rel="noreferrer">
+                <ExternalLink size={10} /> View on Discord
+              </a>
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-2 px-2 py-1">
+            <Badge variant="ban">Not Linked</Badge>
+            <p className="text-xs font-mono text-muted-foreground">This player has not linked a Discord account.</p>
+          </div>
+        )}
+      </CardContent>
     </Card>
   );
 }
@@ -654,6 +691,7 @@ export function PlayerDetail() {
         </div>
 
         <div className="space-y-6">
+          <DiscordStatusCard discord={profile?.discord ?? null} loading={loading && !profile} />
           <PossibleAltsCard alts={alts} loading={altsLoading} />
         </div>
       </div>
