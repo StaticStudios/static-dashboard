@@ -25,6 +25,7 @@ import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "../
 import {Collapsible, CollapsibleContent, CollapsibleTrigger} from "../../components/ui/collapsible";
 import {FilterSelect} from "../../components/FilterSelect";
 import {SimpleTooltip} from "../../components/SimpleTooltip";
+import {SpoilerText} from "../../components/SpoilerText";
 import {PlayerAvatar} from "../../components/PlayerAvatar";
 import {PlayerLink} from "../../components/PlayerLink";
 import {PunishmentBadge} from "../../components/PunishmentBadge";
@@ -197,8 +198,36 @@ function DiscordStatusCard({ discord, loading }: { discord: PlayerProfile["disco
   );
 }
 
+const ALT_LOOKBACK_MIN_DAYS = 1;
+const ALT_LOOKBACK_MAX_DAYS = 180;
+
 /** Other accounts that logged in from an IP this player has also used recently — a heuristic, not a confirmed link. */
-function PossibleAltsCard({ alts, loading }: { alts: PlayerAlt[]; loading: boolean }) {
+function PossibleAltsCard({
+  alts,
+  loading,
+  days,
+  onDaysChange,
+}: {
+  alts: PlayerAlt[];
+  loading: boolean;
+  days: number;
+  onDaysChange: (days: number) => void;
+}) {
+  const [daysInput, setDaysInput] = useState(String(days));
+
+  useEffect(() => {
+    setDaysInput(String(days));
+  }, [days]);
+
+  useEffect(() => {
+    const parsed = Number(daysInput);
+    if (!Number.isFinite(parsed) || parsed <= 0) return;
+    const clamped = Math.min(Math.max(Math.trunc(parsed), ALT_LOOKBACK_MIN_DAYS), ALT_LOOKBACK_MAX_DAYS);
+    if (clamped === days) return;
+    const handle = setTimeout(() => onDaysChange(clamped), 400);
+    return () => clearTimeout(handle);
+  }, [daysInput, days, onDaysChange]);
+
   return (
     <Card className="overflow-hidden">
       <CardHeader>
@@ -206,8 +235,19 @@ function PossibleAltsCard({ alts, loading }: { alts: PlayerAlt[]; loading: boole
           <Fingerprint size={14} className="text-primary" />
           <CardTitle>Possible Alts</CardTitle>
           <Badge variant="secondary" className="text-[10px]">{alts.length}</Badge>
+          <div className="ml-auto flex items-center gap-1.5">
+            <Input
+              type="number"
+              min={ALT_LOOKBACK_MIN_DAYS}
+              max={ALT_LOOKBACK_MAX_DAYS}
+              value={daysInput}
+              onChange={(e) => setDaysInput(e.target.value)}
+              className="h-7 w-14 text-[10px] font-mono px-2"
+            />
+            <span className="text-[10px] font-mono text-muted-foreground">days</span>
+          </div>
         </div>
-        <CardDescription>Accounts sharing an IP, last 7 days</CardDescription>
+        <CardDescription>Accounts sharing an IP, last {days} days</CardDescription>
       </CardHeader>
       <Separator />
       <CardContent className="p-3">
@@ -227,7 +267,14 @@ function PossibleAltsCard({ alts, loading }: { alts: PlayerAlt[]; loading: boole
                 <PlayerAvatar initials={initials(alt.name)} seed={0} skinTextureValue={alt.skinTextureValue} />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-mono text-foreground font-semibold truncate">{alt.name}</p>
-                  <p className="text-[10px] font-mono text-muted-foreground truncate">{alt.ipAddresses.join(", ")}</p>
+                  <p className="text-[10px] font-mono text-muted-foreground flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                    {alt.ipAddresses.map((ip, i) => (
+                      <span key={ip} className="inline-flex items-center gap-1">
+                        <SpoilerText value={ip} />
+                        {i < alt.ipAddresses.length - 1 && ","}
+                      </span>
+                    ))}
+                  </p>
                 </div>
               </PlayerLink>
             ))}
@@ -254,7 +301,8 @@ export function PlayerDetail() {
   const id = playerId;
 
   const { profile, loading } = usePlayerProfile(id);
-  const { alts, loading: altsLoading } = usePlayerAlts(id);
+  const [altsDays, setAltsDays] = useState(30);
+  const { alts, loading: altsLoading } = usePlayerAlts(id, altsDays);
   // Name comes from the profile fetch; seed it from router state (when navigating
   // from the list) so the header isn't blank before the profile loads.
   const seedName = (location.state as { name?: string } | null)?.name;
@@ -697,7 +745,7 @@ export function PlayerDetail() {
 
         <div className="space-y-6">
           <DiscordStatusCard discord={profile?.discord ?? null} loading={loading && !profile} />
-          <PossibleAltsCard alts={alts} loading={altsLoading} />
+          <PossibleAltsCard alts={alts} loading={altsLoading} days={altsDays} onDaysChange={setAltsDays} />
         </div>
       </div>
     </div>

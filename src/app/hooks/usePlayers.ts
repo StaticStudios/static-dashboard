@@ -111,8 +111,8 @@ export function usePlayerActions(
   return { actions, totalElements, totalPages, loading };
 }
 
-/** Possible alts: other accounts sharing an IP with this player in the last 7 days. */
-export function usePlayerAlts(id: string | null) {
+/** Possible alts: other accounts sharing an IP with this player within the given lookback window. */
+export function usePlayerAlts(id: string | null, days = 30) {
   const [alts, setAlts] = useState<PlayerAlt[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -123,7 +123,7 @@ export function usePlayerAlts(id: string | null) {
     }
     let cancelled = false;
     setLoading(true);
-    fetchPlayerAlts(id)
+    fetchPlayerAlts(id, days)
       .then((list) => {
         if (!cancelled) setAlts(list);
       })
@@ -136,7 +136,7 @@ export function usePlayerAlts(id: string | null) {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, days]);
 
   return { alts, loading };
 }
