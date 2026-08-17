@@ -94,7 +94,7 @@ export interface PlayerProfile {
     mineRank: number;
     gang: { id: string; name: string; owner: boolean } | null;
   } | null;
-  discord: { snowflake: string; username: string } | null;
+  discord: { snowflake: string; username: string; boosting: boolean } | null;
 }
 
 export interface MeResponse {

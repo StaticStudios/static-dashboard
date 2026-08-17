@@ -14,6 +14,7 @@ import {
   Link2,
   MessageSquare,
   Shield,
+  Sparkles,
   Users as UsersIcon,
 } from "lucide-react";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "../../components/ui/card";
@@ -179,7 +180,14 @@ function DiscordStatusCard({ discord, loading }: { discord: PlayerProfile["disco
           <p className="text-xs font-mono text-muted-foreground py-2 px-2">Loading…</p>
         ) : discord ? (
           <div className="space-y-2 px-2 py-1">
-            <Badge className="text-emerald-400 border-emerald-500/20 bg-emerald-500/10">Linked</Badge>
+            <div className="flex flex-wrap gap-1.5">
+              <Badge className="text-emerald-400 border-emerald-500/20 bg-emerald-500/10">Linked</Badge>
+              {discord.boosting && (
+                <Badge className="text-pink-400 border-pink-500/20 bg-pink-500/10">
+                  <Sparkles size={10} /> Boosting
+                </Badge>
+              )}
+            </div>
             <p className="text-xs font-mono text-foreground font-semibold truncate">{discord.username}</p>
             <Button variant="outline" size="sm" asChild>
               <a href={`https://discord.com/users/${discord.snowflake}`} target="_blank" rel="noreferrer">
