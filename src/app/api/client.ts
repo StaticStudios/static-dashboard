@@ -5,6 +5,7 @@ export const WS_URL = BASE_URL.replace(/^http/, "ws") + "/ws";
 type QueryValue = string | number | boolean | readonly string[] | undefined;
 
 let tokenGetter: (() => Promise<string | null>) | null = null;
+let unauthorizedHandler: (() => void) | null = null;
 
 /**
  * Registers how to obtain the current auth token. Set once at bootstrap by the Clerk integration;
@@ -12,6 +13,14 @@ let tokenGetter: (() => Promise<string | null>) | null = null;
  */
 export function setAuthTokenGetter(getter: (() => Promise<string | null>) | null): void {
   tokenGetter = getter;
+}
+
+/**
+ * Registers a callback invoked whenever the API returns 401 Unauthorized. Set once at bootstrap
+ * by the Clerk integration; when unset (e.g. local dev without Clerk) 401s are just thrown as errors.
+ */
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  unauthorizedHandler = handler;
 }
 
 export async function getAuthToken(): Promise<string | null> {
@@ -33,6 +42,10 @@ export async function apiFetch<T>(path: string, params?: Record<string, QueryVal
 
   const token = tokenGetter ? await tokenGetter() : null;
   const res = await fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
+  if (res.status === 401) {
+    unauthorizedHandler?.();
+    throw new Error(`API request to ${path} failed: 401 Unauthorized`);
+  }
   if (!res.ok) {
     throw new Error(`API request to ${path} failed: ${res.status} ${res.statusText}`);
   }
