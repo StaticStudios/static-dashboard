@@ -27,6 +27,24 @@ export async function getAuthToken(): Promise<string | null> {
   return tokenGetter ? await tokenGetter() : null;
 }
 
+/**
+ * Checks whether the current session is authorized to use the dashboard, without parsing the
+ * response body as JSON (the backend's check_user endpoint replies with plain text). Firing the
+ * unauthorized handler here (same as apiFetch) keeps sign-out behavior consistent.
+ */
+export async function checkAuthorized(): Promise<boolean> {
+  const token = tokenGetter ? await tokenGetter() : null;
+  const res = await fetch(
+    new URL("/api/v1/auth/check_user", BASE_URL),
+    token ? { headers: { Authorization: `Bearer ${token}` } } : undefined,
+  );
+  if (res.status === 401) {
+    unauthorizedHandler?.();
+    return false;
+  }
+  return res.ok;
+}
+
 export async function apiFetch<T>(path: string, params?: Record<string, QueryValue>): Promise<T> {
   const url = new URL(path, BASE_URL);
   if (params) {

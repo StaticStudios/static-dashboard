@@ -1,9 +1,9 @@
-import {useEffect} from "react";
+import {type ReactNode, useEffect, useState} from "react";
 import {createRoot} from "react-dom/client";
 import {BrowserRouter} from "react-router";
 import {ClerkProvider, RedirectToSignIn, SignedIn, SignedOut, useAuth, useClerk} from "@clerk/clerk-react";
 import App from "./app/App.tsx";
-import {setAuthTokenGetter, setUnauthorizedHandler} from "./app/api/client";
+import {checkAuthorized, setAuthTokenGetter, setUnauthorizedHandler} from "./app/api/client";
 import "./styles/index.css";
 
 const clerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -36,6 +36,29 @@ function ClerkUnauthorizedSync() {
   return null;
 }
 
+/**
+ * Blocks rendering the dashboard until the backend confirms this session is staff-authorized.
+ * Prevents a flash of the dashboard for signed-in-but-not-authorized users while sign-out
+ * (triggered by the 401 from the authorization check) is still in flight.
+ */
+function AuthorizedGate({ children }: { children: ReactNode }) {
+  const [authorized, setAuthorized] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    checkAuthorized()
+      .then((ok) => {
+        if (!cancelled) setAuthorized(ok);
+      })
+      .catch(() => {
+        if (!cancelled) setAuthorized(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return authorized ? <>{children}</> : null;
+}
+
 const root = createRoot(document.getElementById("root")!);
 root.render(
   clerkKey ? (
@@ -43,9 +66,11 @@ root.render(
       <ClerkTokenSync />
       <ClerkUnauthorizedSync />
       <SignedIn>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
+        <AuthorizedGate>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </AuthorizedGate>
       </SignedIn>
       <SignedOut>
         <RedirectToSignIn />
