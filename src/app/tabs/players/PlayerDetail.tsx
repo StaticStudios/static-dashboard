@@ -276,12 +276,14 @@ function PossibleAltsCard({
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-mono text-foreground font-semibold truncate">{alt.name}</p>
                   <p className="text-[10px] font-mono text-muted-foreground flex flex-wrap items-center gap-x-1 gap-y-0.5">
-                    {alt.ipAddresses.map((ip, i) => (
-                      <span key={ip} className="inline-flex items-center gap-1">
-                        <SpoilerText value={ip} />
-                        {i < alt.ipAddresses.length - 1 && ","}
-                      </span>
-                    ))}
+                    {alt.ipAddresses.length > 0 ? (
+                      alt.ipAddresses.map((ip, i) => (
+                        <span key={ip} className="inline-flex items-center gap-1">
+                          <SpoilerText value={ip} />
+                          {i < alt.ipAddresses.length - 1 && ","}
+                        </span>
+                      ))
+                    ) : (<div/>)}
                   </p>
                 </div>
               </PlayerLink>
