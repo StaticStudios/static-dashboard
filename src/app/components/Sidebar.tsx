@@ -2,7 +2,7 @@ import type {ReactNode} from "react";
 import {useLocation, useNavigate} from "react-router";
 import {LayoutDashboard, MessageSquare, Shield, Users, X} from "lucide-react";
 import logoSrc from "../../public/logo.png";
-import {cn, initials, skinFaceUrl} from "../../lib/utils";
+import {cn, formatRank, initials, skinFaceUrl} from "../../lib/utils";
 import {Separator} from "./ui/separator";
 import {PlayerHead} from "./PlayerHead";
 import {usePunishments} from "../hooks/usePunishments";
@@ -104,7 +104,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
           )}
           <div className="flex-1 min-w-0">
             <p className="text-xs font-mono text-foreground truncate font-medium">{me?.discordUsername ?? "…"}</p>
-            <p className="text-[10px] font-mono text-primary leading-none mt-0.5">{me?.role ?? "Staff"}</p>
+            <p className="text-[10px] font-mono text-primary leading-none mt-0.5">{formatRank(me?.rank)}</p>
           </div>
           <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
         </div>

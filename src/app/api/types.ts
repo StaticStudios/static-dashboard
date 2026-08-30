@@ -99,7 +99,8 @@ export interface PlayerProfile {
 
 export interface MeResponse {
   discordUsername: string;
-  role: string | null;
+  /** Staff rank tier, e.g. "ADMIN" — see StaffPosition on the API. Null for an unsynced/dev principal. */
+  rank: string | null;
   minecraftId: string | null;
   minecraftName: string | null;
   skinTextureValue: string | null;
