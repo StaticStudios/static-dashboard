@@ -44,6 +44,9 @@ export function ChatMessageRow({
         </span>
       </SimpleTooltip>
       <p className="text-xs font-mono leading-relaxed">
+        {message.origin === "discord" && (
+          <span className="font-semibold mr-1.5 text-indigo-400">[D]</span>
+        )}
         {isPrivate ? (
           <span className="font-semibold mr-1.5 text-pink-400">[DM]</span>
         ) : (

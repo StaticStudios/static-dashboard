@@ -50,6 +50,7 @@ export interface ChatLogEntry {
   chatroom: string | null;
   channelId: string | null;
   type: string | null;
+  origin: string | null;
 }
 
 export interface CursorPage<T> {
