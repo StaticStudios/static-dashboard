@@ -39,6 +39,21 @@ export interface PlayerAlt {
   ipAddresses: string[];
 }
 
+export interface GiftCardBalanceResponse {
+  balance: number;
+}
+
+export type GiftCardHistoryType = "CREATED" | "REDEEMED" | "PAYMENT_SENT" | "PAYMENT_RECEIVED" | "MODIFIED";
+
+export interface GiftCardHistoryEntry {
+  type: GiftCardHistoryType;
+  amount: number;
+  description: string;
+  counterpartyId: string | null;
+  counterpartyName: string | null;
+  timestamp: string;
+}
+
 export interface ChatLogEntry {
   id: string;
   senderName: string;
