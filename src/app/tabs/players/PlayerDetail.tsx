@@ -16,6 +16,7 @@ import {
   Shield,
   Sparkles,
   Users as UsersIcon,
+  Wallet,
 } from "lucide-react";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "../../components/ui/card";
 import {Badge} from "../../components/ui/badge";
@@ -30,6 +31,7 @@ import {SpoilerText} from "../../components/SpoilerText";
 import {PlayerAvatar} from "../../components/PlayerAvatar";
 import {PlayerLink} from "../../components/PlayerLink";
 import {PunishmentBadge} from "../../components/PunishmentBadge";
+import {GiftCardTypeBadge} from "../../components/GiftCardTypeBadge";
 import {TablePager} from "../../components/TablePager";
 import {ChatMessageRow, SERVER_COLORS} from "../../components/ChatMessageRow";
 import {
@@ -41,7 +43,8 @@ import {
 } from "../../hooks/usePlayers";
 import {getPunishmentStatus} from "../../hooks/usePunishments";
 import {fetchPunishments} from "../../api/punishments";
-import type {PlayerAlt, PlayerProfile, PunishmentResponse} from "../../api/types";
+import {fetchPlayerGiftCardBalance, fetchPlayerGiftCardHistory} from "../../api/giftcards";
+import type {GiftCardHistoryEntry, PlayerAlt, PlayerProfile, PunishmentResponse} from "../../api/types";
 import {cn, initials} from "../../../lib/utils";
 
 function formatPlaytime(seconds: number): string {
@@ -108,6 +111,12 @@ function num(n: number): string {
 const ACTIONS_PAGE_SIZE = 15;
 const PUNISHMENTS_PAGE_SIZE = 5;
 const CONVERSATIONS_PAGE_SIZE = 5;
+const GIFTCARD_HISTORY_PAGE_SIZE = 5;
+
+function currency(n: number): string {
+  const sign = n < 0 ? "-" : "";
+  return `${sign}$${Math.abs(n).toFixed(2)}`;
+}
 
 function prettyJson(raw: string | null): string {
   if (!raw) return "—";
@@ -150,6 +159,65 @@ function usePlayerPunishments(id: string, page: number) {
   }, [id, page]);
 
   return { punishments, totalElements, totalPages, loading };
+}
+
+function usePlayerGiftCardBalance(id: string) {
+  const [balance, setBalance] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetchPlayerGiftCardBalance(id)
+      .then((result) => {
+        if (!cancelled) setBalance(result.balance);
+      })
+      .catch(() => {
+        if (!cancelled) setBalance(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  return { balance, loading };
+}
+
+function usePlayerGiftCardHistory(id: string, page: number) {
+  const [history, setHistory] = useState<GiftCardHistoryEntry[]>([]);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetchPlayerGiftCardHistory(id, { page: page - 1, limit: GIFTCARD_HISTORY_PAGE_SIZE })
+      .then((result) => {
+        if (cancelled) return;
+        setHistory(result.content);
+        setTotalElements(result.totalElements);
+        setTotalPages(Math.max(1, result.totalPages));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setHistory([]);
+          setTotalElements(0);
+          setTotalPages(1);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, page]);
+
+  return { history, totalElements, totalPages, loading };
 }
 
 function StatCard({ icon, label, value }: { icon: ReactNode; label: string; value: ReactNode }) {
@@ -329,6 +397,19 @@ export function PlayerDetail() {
     setPunishmentsPage(1);
   }, [id]);
 
+  const { balance: giftCardBalance, loading: giftCardBalanceLoading } = usePlayerGiftCardBalance(id);
+  const [giftCardHistoryPage, setGiftCardHistoryPage] = useState(1);
+  const {
+    history: giftCardHistory,
+    totalElements: giftCardHistoryTotal,
+    totalPages: giftCardHistoryTotalPages,
+    loading: giftCardHistoryLoading,
+  } = usePlayerGiftCardHistory(id, giftCardHistoryPage);
+
+  useEffect(() => {
+    setGiftCardHistoryPage(1);
+  }, [id]);
+
   // Recent actions + filters
   const actionIds = usePlayerActionIds(id);
   const [actionFilter, setActionFilter] = useState("all");
@@ -380,11 +461,12 @@ export function PlayerDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] gap-6 items-start">
         <div className="space-y-6">
       {/* Quick stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <StatCard icon={<Clock size={16} />} label="Total Playtime" value={profile ? formatPlaytime(profile.playtime.total) : "…"} />
         <StatCard icon={<Calendar size={16} />} label="First Joined" value={profile ? <DateValue iso={profile.firstEverJoined} /> : "…"} />
         <StatCard icon={<Activity size={16} />} label="Last Seen" value={profile ? <DateValue iso={profile.lastSeen} /> : "…"} />
         <StatCard icon={<Shield size={16} />} label="Punishments" value={punishmentsLoading ? "…" : punishmentsTotal} />
+        <StatCard icon={<Wallet size={16} />} label="Giftcard Balance" value={giftCardBalanceLoading ? "…" : currency(giftCardBalance ?? 0)} />
       </div>
 
       {loading && !profile ? (
@@ -541,6 +623,83 @@ export function PlayerDetail() {
                     –{Math.min(punishmentsPage * PUNISHMENTS_PAGE_SIZE, punishmentsTotal)} of {punishmentsTotal}
                   </span>
                   <TablePager page={punishmentsPage} totalPages={punishmentsTotalPages} onPageChange={setPunishmentsPage} />
+                </div>
+              </>
+            )}
+          </Card>
+
+          {/* Giftcard history */}
+          <Card className="overflow-hidden">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Wallet size={14} className="text-primary" />
+                <CardTitle>Giftcard History</CardTitle>
+                <Badge variant="secondary" className="text-[10px]">{giftCardHistoryTotal}</Badge>
+              </div>
+            </CardHeader>
+            <Separator />
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Detail</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead className="hidden md:table-cell">Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {giftCardHistory.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="px-5 py-10 text-center text-sm font-mono text-muted-foreground">
+                      {giftCardHistoryLoading ? "Loading giftcard history…" : "No giftcard activity on record."}
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  giftCardHistory.map((entry, i) => (
+                    <TableRow key={i}>
+                      <TableCell><GiftCardTypeBadge type={entry.type} /></TableCell>
+                      <TableCell>
+                        {entry.counterpartyId ? (
+                          <PlayerLink id={entry.counterpartyId} name={entry.counterpartyName ?? ""}>
+                            <span className="text-xs text-muted-foreground hover:text-foreground">{entry.description}</span>
+                          </PlayerLink>
+                        ) : (
+                          <span className="text-xs text-muted-foreground block max-w-[260px] whitespace-normal">{entry.description}</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <span className={cn(
+                          "text-xs font-mono font-semibold whitespace-nowrap",
+                          entry.amount > 0 ? "text-emerald-400" : entry.amount < 0 ? "text-red-400" : "text-muted-foreground"
+                        )}>
+                          {entry.amount > 0 ? "+" : ""}{currency(entry.amount)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{new Date(entry.timestamp).toLocaleString()}</span>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+                {Array.from(
+                  { length: GIFTCARD_HISTORY_PAGE_SIZE - (giftCardHistory.length === 0 ? 1 : giftCardHistory.length) },
+                  (_, i) => (
+                    <TableRow key={`filler-${i}`} className="hover:bg-transparent">
+                      <TableCell colSpan={4}>&nbsp;</TableCell>
+                    </TableRow>
+                  )
+                )}
+              </TableBody>
+            </Table>
+            {giftCardHistoryTotalPages > 1 && (
+              <>
+                <Separator />
+                <div className="px-5 py-3.5 flex items-center justify-between">
+                  <span className="text-xs font-mono text-muted-foreground">
+                    Showing {(giftCardHistoryPage - 1) * GIFTCARD_HISTORY_PAGE_SIZE + 1}
+                    –{Math.min(giftCardHistoryPage * GIFTCARD_HISTORY_PAGE_SIZE, giftCardHistoryTotal)} of {giftCardHistoryTotal}
+                  </span>
+                  <TablePager page={giftCardHistoryPage} totalPages={giftCardHistoryTotalPages} onPageChange={setGiftCardHistoryPage} />
                 </div>
               </>
             )}
