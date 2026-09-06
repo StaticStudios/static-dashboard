@@ -115,12 +115,39 @@ export interface PlayerProfile {
 
 export interface MeResponse {
   discordUsername: string;
-  /** Staff rank tier, e.g. "ADMIN" — see StaffPosition on the API. Null for an unsynced/dev principal. */
+  /** Staff rank tier, e.g. "ADMIN" — see StaffPosition on the API. Taken from the tier the request
+   *  was authorized as, so the dev principal reports its tier too. */
   rank: string | null;
   minecraftId: string | null;
   minecraftName: string | null;
   skinTextureValue: string | null;
   skinTextureSignature: string | null;
+}
+
+/**
+ * An Adventure text component as serialized by the proxy (Kyori's gson format). Styles cascade to
+ * `extra` children unless a child overrides them.
+ */
+export interface MinecraftComponent {
+  text?: string;
+  color?: string;
+  bold?: boolean;
+  italic?: boolean;
+  underlined?: boolean;
+  strikethrough?: boolean;
+  obfuscated?: boolean;
+  extra?: MinecraftComponent[];
+}
+
+export interface MotdResponse {
+  /** Raw MiniMessage source of each line. */
+  line1: string;
+  line2: string;
+  /** Each line parsed by the proxy, or null when `error` is set. */
+  rendered1?: MinecraftComponent | null;
+  rendered2?: MinecraftComponent | null;
+  /** Parser message when a line is invalid MiniMessage. */
+  error?: string | null;
 }
 
 export interface AuditAction {

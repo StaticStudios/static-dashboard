@@ -69,3 +69,22 @@ export async function apiFetch<T>(path: string, params?: Record<string, QueryVal
   }
   return res.json() as Promise<T>;
 }
+
+/** Same auth and error handling as {@link apiFetch}, for requests that carry a JSON body. */
+export async function apiSend<T>(path: string, method: "POST" | "PUT" | "PATCH" | "DELETE", body?: unknown): Promise<T> {
+  const url = new URL(path, BASE_URL);
+
+  const token = tokenGetter ? await tokenGetter() : null;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(url, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+  if (res.status === 401) {
+    unauthorizedHandler?.();
+    throw new Error(`API request to ${path} failed: 401 Unauthorized`);
+  }
+  if (!res.ok) {
+    throw new Error(`API request to ${path} failed: ${res.status} ${res.statusText}`);
+  }
+  return res.json() as Promise<T>;
+}

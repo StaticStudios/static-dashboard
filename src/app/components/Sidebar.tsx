@@ -1,8 +1,8 @@
 import type {ReactNode} from "react";
 import {useLocation, useNavigate} from "react-router";
-import {LayoutDashboard, MessageSquare, Shield, Users, X} from "lucide-react";
+import {LayoutDashboard, Megaphone, MessageSquare, Shield, Users, X} from "lucide-react";
 import logoSrc from "../../public/logo.png";
-import {cn, formatRank, initials, skinFaceUrl} from "../../lib/utils";
+import {cn, formatRank, initials, rankAtLeast, skinFaceUrl, type StaffPosition} from "../../lib/utils";
 import {Separator} from "./ui/separator";
 import {PlayerHead} from "./PlayerHead";
 import {usePunishments} from "../hooks/usePunishments";
@@ -10,11 +10,13 @@ import {useChatMessageCount} from "../hooks/useChatMessageCount";
 import {useMe} from "../hooks/useMe";
 import type {TabKey} from "../types";
 
-export const NAV_ITEMS: { key: TabKey; path: string; label: string; icon: ReactNode }[] = [
+/** `minRank` hides an entry from staff below that tier; the API enforces the same limit. */
+export const NAV_ITEMS: { key: TabKey; path: string; label: string; icon: ReactNode; minRank?: StaffPosition }[] = [
   { key: "dashboard",   path: "/dashboard",   label: "Dashboard",    icon: <LayoutDashboard size={15} /> },
   { key: "players",     path: "/players",     label: "Players",      icon: <Users size={15} />           },
   { key: "punishments", path: "/punishments", label: "Punishments",  icon: <Shield size={15} />          },
   { key: "chat",        path: "/chat",        label: "In-Game Chat", icon: <MessageSquare size={15} />   },
+  { key: "motd",        path: "/motd",        label: "MOTD Editor",  icon: <Megaphone size={15} />,      minRank: "DEVELOPER" },
 ];
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
@@ -30,7 +32,11 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     players:     null,
     punishments: activePunishments,
     chat:        chatCount ?? 0,
+    motd:        null,
   };
+
+  // Filtered here rather than in NAV_ITEMS, which App.tsx also reads for the breadcrumb label.
+  const visibleItems = NAV_ITEMS.filter(({ minRank }) => !minRank || rankAtLeast(me?.rank, minRank));
 
   return (
     <aside className="flex flex-col h-full w-60 bg-sidebar border-r border-sidebar-border shrink-0">
@@ -57,7 +63,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
         <p className="text-[9px] font-mono font-semibold text-muted-foreground/50 uppercase tracking-widest px-2.5 mb-2">
           Menu
         </p>
-        {NAV_ITEMS.map(({ key, path, label, icon }) => {
+        {visibleItems.map(({ key, path, label, icon }) => {
           const isActive = pathname === path || pathname.startsWith(`${path}/`);
           const count = activeCounts[key];
           return (

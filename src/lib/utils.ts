@@ -32,3 +32,18 @@ export function formatRank(rank?: string | null): string {
   if (!rank) return "Staff";
   return rank.charAt(0).toUpperCase() + rank.slice(1).toLowerCase();
 }
+
+/** Staff tiers in ascending order — mirrors the `StaffPosition` enum on the API. */
+export const STAFF_POSITIONS = ["STAFF", "MOD", "ADMIN", "MANAGER", "DEVELOPER", "OWNER"] as const;
+
+export type StaffPosition = (typeof STAFF_POSITIONS)[number];
+
+/**
+ * Whether `rank` is at least `minimum` in the staff hierarchy. An unknown or missing rank never
+ * qualifies. This only decides what the UI offers — the API enforces access with `@PreAuthorize`.
+ */
+export function rankAtLeast(rank: string | null | undefined, minimum: StaffPosition): boolean {
+  if (!rank) return false;
+  const held = STAFF_POSITIONS.indexOf(rank.toUpperCase() as StaffPosition);
+  return held >= 0 && held >= STAFF_POSITIONS.indexOf(minimum);
+}
