@@ -62,7 +62,7 @@ function Node({ node, inherited }: { node: MinecraftComponent; inherited: Style 
     >
       {node.text}
       {node.extra?.map((child, i) => (
-        <Node key={i} node={child} inherited={style} />
+        <Node key={i} node={typeof child === "string" ? { text: child } : child} inherited={style} />
       ))}
     </span>
   );
