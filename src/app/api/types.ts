@@ -179,3 +179,13 @@ export interface AuditAction {
   actionId: string;
   actionData: string | null;
 }
+
+/**
+ * One server group / server pair a player has audit entries from. `applicationGroup` is the
+ * gamemode (`skyblock`, `prison`, `hub`, `proxy`); `applicationId` is the instance inside it.
+ * Only pairs that actually occur in that player's log are returned.
+ */
+export interface ActionSource {
+  applicationGroup: string;
+  applicationId: string;
+}

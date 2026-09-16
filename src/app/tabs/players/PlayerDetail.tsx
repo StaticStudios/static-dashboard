@@ -1,23 +1,24 @@
 import type {ReactNode} from "react";
-import {Fragment, useEffect, useState} from "react";
+import {Fragment, useEffect, useMemo, useState} from "react";
 import {useLocation, useNavigate, useParams} from "react-router";
 import {
-  Activity,
-  ArrowLeft,
-  Calendar,
-  ChevronDown,
-  Clock,
-  ExternalLink,
-  Fingerprint,
-  Gamepad2,
-  Home,
-  Link2,
-  MessageSquare,
-  Shield,
-  Sparkles,
-  Tags,
-  Users as UsersIcon,
-  Wallet,
+    Activity,
+    ArrowLeft,
+    Calendar,
+    ChevronDown,
+    Clock,
+    ExternalLink,
+    Fingerprint,
+    Gamepad2,
+    Home,
+    Link2,
+    MessageSquare,
+    Search,
+    Shield,
+    Sparkles,
+    Tags,
+    Users as UsersIcon,
+    Wallet,
 } from "lucide-react";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "../../components/ui/card";
 import {Badge} from "../../components/ui/badge";
@@ -27,6 +28,8 @@ import {Separator} from "../../components/ui/separator";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "../../components/ui/table";
 import {Collapsible, CollapsibleContent, CollapsibleTrigger} from "../../components/ui/collapsible";
 import {FilterSelect} from "../../components/FilterSelect";
+import {MultiSelectFilter} from "../../components/MultiSelectFilter";
+import {SearchInput} from "../../components/SearchInput";
 import {SimpleTooltip} from "../../components/SimpleTooltip";
 import {SpoilerText} from "../../components/SpoilerText";
 import {PlayerAvatar} from "../../components/PlayerAvatar";
@@ -37,13 +40,15 @@ import {GiftCardTypeBadge} from "../../components/GiftCardTypeBadge";
 import {TablePager} from "../../components/TablePager";
 import {ChatMessageRow, SERVER_COLORS} from "../../components/ChatMessageRow";
 import {
-  usePlayerActionIds,
-  usePlayerActions,
-  usePlayerAlts,
-  usePlayerChatTags,
-  usePlayerConversations,
-  usePlayerProfile,
+    usePlayerActionIds,
+    usePlayerActions,
+    usePlayerActionSources,
+    usePlayerAlts,
+    usePlayerChatTags,
+    usePlayerConversations,
+    usePlayerProfile,
 } from "../../hooks/usePlayers";
+import {useDebounced} from "../../hooks/useDebounced";
 import {getPunishmentStatus} from "../../hooks/usePunishments";
 import {fetchPunishments} from "../../api/punishments";
 import {fetchPlayerGiftCardBalance, fetchPlayerGiftCardHistory} from "../../api/giftcards";
@@ -485,21 +490,59 @@ export function PlayerDetail() {
 
   // Recent actions + filters
   const actionIds = usePlayerActionIds(id);
+  const actionSources = usePlayerActionSources(id);
   const [actionFilter, setActionFilter] = useState("all");
+  const [actionSearch, setActionSearch] = useState("");
+  const [groupFilter, setGroupFilter] = useState<string[]>([]);
+  const [serverFilter, setServerFilter] = useState<string[]>([]);
   const [fromInput, setFromInput] = useState("");
   const [toInput, setToInput] = useState("");
   const [actionsPage, setActionsPage] = useState(1);
+  const debouncedActionSearch = useDebounced(actionSearch, 250);
+
+  // Only offer groups/servers this player actually has entries from, and narrow the server list to
+  // the selected gamemodes so the two dropdowns can't be combined into an empty result.
+  const actionGroups = useMemo(
+    () => [...new Set(actionSources.map((s) => s.applicationGroup))].sort(),
+    [actionSources]
+  );
+  const actionServers = useMemo(
+    () =>
+      [
+        ...new Set(
+          actionSources
+            .filter((s) => groupFilter.length === 0 || groupFilter.includes(s.applicationGroup))
+            .map((s) => s.applicationId)
+        ),
+      ].sort(),
+    [actionSources, groupFilter]
+  );
+
   const { actions, totalElements: actionsTotal, totalPages: actionsTotalPages, loading: actionsLoading } = usePlayerActions(id, {
     actionId: actionFilter === "all" ? undefined : actionFilter,
+    search: debouncedActionSearch || undefined,
+    applicationGroups: groupFilter,
+    applicationIds: serverFilter,
     from: fromInput ? new Date(fromInput).getTime() : undefined,
     to: toInput ? new Date(toInput).getTime() : undefined,
     page: actionsPage,
     limit: ACTIONS_PAGE_SIZE,
   });
 
+  // Drop server selections the gamemode filter just took off the menu — otherwise an invisible
+  // filter keeps suppressing rows.
+  useEffect(() => {
+    setServerFilter((prev) => {
+      const kept = prev.filter((s) => actionServers.includes(s));
+      // Keep the same array when nothing was dropped: a fresh identity would re-run the
+      // reset-to-page-1 effect below and bounce the user off their current page.
+      return kept.length === prev.length ? prev : kept;
+    });
+  }, [actionServers]);
+
   useEffect(() => {
     setActionsPage(1);
-  }, [actionFilter, fromInput, toInput]);
+  }, [actionFilter, debouncedActionSearch, groupFilter, serverFilter, fromInput, toInput]);
 
   // Recent conversations
   const [contextSizeInput, setContextSizeInput] = useState("5");
@@ -790,32 +833,60 @@ export function PlayerDetail() {
             </CardHeader>
             <CardContent>
               {/* Filters */}
-              <div className="flex flex-col sm:flex-row gap-3 sm:items-center mb-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:items-center mb-3">
+                <SearchInput
+                  className="flex-1"
+                  placeholder="Search payload..."
+                  value={actionSearch}
+                  onChange={setActionSearch}
+                  icon={<Search size={14} />}
+                />
                 <FilterSelect
                   value={actionFilter}
                   onValueChange={setActionFilter}
                   placeholder="Action"
+                  className="sm:w-[210px] sm:shrink-0"
                   options={[
                     { value: "all", label: "All actions" },
                     ...actionIds.map((a) => ({ value: a, label: a })),
                   ]}
                 />
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-mono text-muted-foreground">From</span>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3 sm:items-center mb-4">
+                <MultiSelectFilter
+                  options={actionGroups}
+                  selected={groupFilter}
+                  onChange={setGroupFilter}
+                  placeholder="All gamemodes"
+                  searchPlaceholder="Search gamemodes..."
+                  emptyLabel="No gamemodes found."
+                  className="sm:flex-1 sm:min-w-0"
+                />
+                <MultiSelectFilter
+                  options={actionServers}
+                  selected={serverFilter}
+                  onChange={setServerFilter}
+                  placeholder="All servers"
+                  searchPlaceholder="Search servers..."
+                  emptyLabel="No servers found."
+                  className="sm:flex-1 sm:min-w-0"
+                />
+                <div className="flex items-center gap-1.5 sm:flex-[1.3] sm:min-w-0">
+                  <span className="text-[10px] font-mono text-muted-foreground shrink-0">From</span>
                   <Input
                     type="datetime-local"
                     value={fromInput}
                     onChange={(e) => setFromInput(e.target.value)}
-                    className="font-mono text-xs w-[200px] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    className="font-mono text-xs w-[200px] sm:w-auto sm:flex-1 sm:min-w-0 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                   />
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-mono text-muted-foreground">To</span>
+                <div className="flex items-center gap-1.5 sm:flex-[1.3] sm:min-w-0">
+                  <span className="text-[10px] font-mono text-muted-foreground shrink-0">To</span>
                   <Input
                     type="datetime-local"
                     value={toInput}
                     onChange={(e) => setToInput(e.target.value)}
-                    className="font-mono text-xs w-[200px] [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    className="font-mono text-xs w-[200px] sm:w-auto sm:flex-1 sm:min-w-0 [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                   />
                 </div>
               </div>

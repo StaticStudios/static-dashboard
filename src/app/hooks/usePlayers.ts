@@ -1,6 +1,7 @@
 import {useEffect, useState} from "react";
 import {
     fetchPlayerActionIds,
+    fetchPlayerActionSources,
     fetchPlayerActions,
     fetchPlayerAlts,
     fetchPlayerChatTags,
@@ -9,6 +10,7 @@ import {
     fetchPlayers,
 } from "../api/players";
 import type {
+    ActionSource,
     AuditAction,
     ConversationBlock,
     PlayerAlt,
@@ -77,13 +79,30 @@ export function usePlayerProfile(id: string | null) {
 
 export function usePlayerActions(
   id: string | null,
-  filters: { actionId?: string; from?: number; to?: number; page?: number; limit?: number }
+  filters: {
+    actionId?: string;
+    /** Matched against the JSON payload only, server-side. */
+    search?: string;
+    /** Empty means every group. */
+    applicationGroups?: string[];
+    /** Empty means every server. */
+    applicationIds?: string[];
+    from?: number;
+    to?: number;
+    page?: number;
+    limit?: number;
+  }
 ) {
   const [actions, setActions] = useState<AuditAction[]>([]);
   const [totalElements, setTotalElements] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
-  const { actionId, from, to, page = 1, limit } = filters;
+  const { actionId, search, applicationGroups, applicationIds, from, to, page = 1, limit } = filters;
+
+  // The effect below depends on primitives only: the caller passes fresh array literals every
+  // render, so depending on the arrays directly would refetch forever.
+  const groupKey = (applicationGroups ?? []).join(",");
+  const idKey = (applicationIds ?? []).join(",");
 
   useEffect(() => {
     if (!id) {
@@ -94,7 +113,16 @@ export function usePlayerActions(
     }
     let cancelled = false;
     setLoading(true);
-    fetchPlayerActions(id, { actionId, from, to, page: page - 1, limit })
+    fetchPlayerActions(id, {
+      actionId,
+      search,
+      applicationGroup: applicationGroups,
+      applicationId: applicationIds,
+      from,
+      to,
+      page: page - 1,
+      limit,
+    })
       .then((result) => {
         if (cancelled) return;
         setActions(result.content);
@@ -114,7 +142,9 @@ export function usePlayerActions(
     return () => {
       cancelled = true;
     };
-  }, [id, actionId, from, to, page, limit]);
+    // groupKey/idKey stand in for the arrays: they change exactly when the contents do, so the
+    // arrays captured above are never stale.
+  }, [id, actionId, search, groupKey, idKey, from, to, page, limit]);
 
   return { actions, totalElements, totalPages, loading };
 }
@@ -247,4 +277,29 @@ export function usePlayerActionIds(id: string | null) {
   }, [id]);
 
   return actionIds;
+}
+
+/** Every server-group / server pair this player has audit entries from, for the audit log filters. */
+export function usePlayerActionSources(id: string | null) {
+  const [sources, setSources] = useState<ActionSource[]>([]);
+
+  useEffect(() => {
+    if (!id) {
+      setSources([]);
+      return;
+    }
+    let cancelled = false;
+    fetchPlayerActionSources(id)
+      .then((list) => {
+        if (!cancelled) setSources(list);
+      })
+      .catch(() => {
+        if (!cancelled) setSources([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  return sources;
 }

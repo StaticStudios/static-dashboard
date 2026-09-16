@@ -12,20 +12,11 @@ import {PlayerAvatar} from "../components/PlayerAvatar";
 import {PlayerLink} from "../components/PlayerLink";
 import {PunishmentBadge} from "../components/PunishmentBadge";
 import {TablePager} from "../components/TablePager";
+import {useDebounced} from "../hooks/useDebounced";
 import {getPunishmentStatus, usePunishmentLookup, usePunishments} from "../hooks/usePunishments";
 import {cn, initials} from "../../lib/utils";
 
 const PAGE_SIZE = 6;
-
-/** Debounces a fast-changing value (e.g. search input) so we don't hit the API on every keystroke. */
-function useDebounced<T>(value: T, delayMs: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const handle = setTimeout(() => setDebounced(value), delayMs);
-    return () => clearTimeout(handle);
-  }, [value, delayMs]);
-  return debounced;
-}
 
 export function PunishmentsTab() {
   const [idSearch, setIdSearch] = useState("");

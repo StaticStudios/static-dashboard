@@ -1,3 +1,4 @@
+import {cn} from "../../lib/utils";
 import {
   Select,
   SelectContent,
@@ -11,15 +12,18 @@ export function FilterSelect({
   onValueChange,
   options,
   placeholder,
+  className,
 }: {
   value: string;
   onValueChange: (v: string) => void;
   options: { value: string; label: string }[];
   placeholder?: string;
+  /** The trigger is `w-full` by default, which makes it eat a flex row — cap it here when sharing one. */
+  className?: string;
 }) {
   return (
     <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger className="min-w-[130px] font-mono text-sm">
+      <SelectTrigger className={cn("min-w-[130px] font-mono text-sm", className)}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
