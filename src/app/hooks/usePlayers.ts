@@ -3,11 +3,19 @@ import {
     fetchPlayerActionIds,
     fetchPlayerActions,
     fetchPlayerAlts,
+    fetchPlayerChatTags,
     fetchPlayerConversations,
     fetchPlayerProfile,
     fetchPlayers,
 } from "../api/players";
-import type {AuditAction, ConversationBlock, PlayerAlt, PlayerProfile, PlayerSummary} from "../api/types";
+import type {
+    AuditAction,
+    ConversationBlock,
+    PlayerAlt,
+    PlayerChatTag,
+    PlayerProfile,
+    PlayerSummary
+} from "../api/types";
 
 /** Debounced, server-side player search. Blank query returns the most-recently-seen players. */
 export function usePlayers(query: string) {
@@ -139,6 +147,36 @@ export function usePlayerAlts(id: string | null, days = 30) {
   }, [id, days]);
 
   return { alts, loading };
+}
+
+/** Every active chat tag this player owns, across all gamemodes, newest parse from the proxy. */
+export function usePlayerChatTags(id: string | null) {
+  const [chatTags, setChatTags] = useState<PlayerChatTag[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!id) {
+      setChatTags([]);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    fetchPlayerChatTags(id)
+      .then((list) => {
+        if (!cancelled) setChatTags(list);
+      })
+      .catch(() => {
+        if (!cancelled) setChatTags([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  return { chatTags, loading };
 }
 
 /** Recent Conversations: paginated context windows around every message this player sent/received. */

@@ -39,6 +39,26 @@ export interface PlayerAlt {
   ipAddresses: string[];
 }
 
+export type ChatTagType = "STANDARD" | "CUSTOM";
+
+export type ServerGroup = "SKYBLOCK" | "PRISON" | "HUB";
+
+/**
+ * A chat tag a player owns. Tags are stored per server group, so the same player can own a
+ * different set on skyblock, prison and hub - `serverGroup` says which one this row came from.
+ */
+export interface PlayerChatTag {
+  id: string;
+  /** Slug used by the /chattag commands. CUSTOM tags are namespaced `<playerUuid>_<name>`. */
+  name: string;
+  /** Raw MiniMessage source. */
+  format: string;
+  type: ChatTagType;
+  serverGroup: ServerGroup;
+  /** `format` parsed by the proxy; null when the proxy was unreachable or the tag failed to parse. */
+  rendered: MinecraftComponent | null;
+}
+
 export interface GiftCardBalanceResponse {
   balance: number;
 }
@@ -136,7 +156,8 @@ export interface MinecraftComponent {
   underlined?: boolean;
   strikethrough?: boolean;
   obfuscated?: boolean;
-  extra?: MinecraftComponent[];
+  /** Adventure serializes an unstyled child as a bare string rather than an object. */
+  extra?: (MinecraftComponent | string)[];
 }
 
 export interface MotdResponse {

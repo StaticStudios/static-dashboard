@@ -1,5 +1,13 @@
 import {apiFetch} from "./client";
-import type {AuditAction, ConversationBlock, Page, PlayerAlt, PlayerProfile, PlayerSummary} from "./types";
+import type {
+    AuditAction,
+    ConversationBlock,
+    Page,
+    PlayerAlt,
+    PlayerChatTag,
+    PlayerProfile,
+    PlayerSummary
+} from "./types";
 
 export function fetchPlayers(query?: string, limit = 50) {
   return apiFetch<PlayerSummary[]>("/api/v1/internal/players", { query, limit });
@@ -28,6 +36,10 @@ export function fetchPlayerActionIds(id: string) {
 
 export function fetchPlayerAlts(id: string, days = 30) {
   return apiFetch<PlayerAlt[]>(`/api/v1/internal/players/${id}/alts`, { days });
+}
+
+export function fetchPlayerChatTags(id: string) {
+  return apiFetch<PlayerChatTag[]>(`/api/v1/internal/players/${id}/chat-tags`);
 }
 
 export function fetchPlayerConversations(

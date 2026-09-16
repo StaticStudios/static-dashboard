@@ -15,6 +15,7 @@ import {
   MessageSquare,
   Shield,
   Sparkles,
+  Tags,
   Users as UsersIcon,
   Wallet,
 } from "lucide-react";
@@ -30,6 +31,7 @@ import {SimpleTooltip} from "../../components/SimpleTooltip";
 import {SpoilerText} from "../../components/SpoilerText";
 import {PlayerAvatar} from "../../components/PlayerAvatar";
 import {PlayerLink} from "../../components/PlayerLink";
+import {MinecraftText} from "../../components/MinecraftText";
 import {PunishmentBadge} from "../../components/PunishmentBadge";
 import {GiftCardTypeBadge} from "../../components/GiftCardTypeBadge";
 import {TablePager} from "../../components/TablePager";
@@ -38,13 +40,14 @@ import {
   usePlayerActionIds,
   usePlayerActions,
   usePlayerAlts,
+  usePlayerChatTags,
   usePlayerConversations,
   usePlayerProfile,
 } from "../../hooks/usePlayers";
 import {getPunishmentStatus} from "../../hooks/usePunishments";
 import {fetchPunishments} from "../../api/punishments";
 import {fetchPlayerGiftCardBalance, fetchPlayerGiftCardHistory} from "../../api/giftcards";
-import type {GiftCardHistoryEntry, PlayerAlt, PlayerProfile, PunishmentResponse} from "../../api/types";
+import type {GiftCardHistoryEntry, PlayerAlt, PlayerChatTag, PlayerProfile, PunishmentResponse} from "../../api/types";
 import {cn, initials} from "../../../lib/utils";
 
 function formatPlaytime(seconds: number): string {
@@ -363,6 +366,75 @@ function PossibleAltsCard({
   );
 }
 
+/** CUSTOM tags are namespaced `<playerUuid>_<name>` by ChatTagManager.generateTagName. */
+const CUSTOM_TAG_PREFIX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_/i;
+
+const CHAT_TAG_GROUP_ORDER = ["SKYBLOCK", "PRISON", "HUB"] as const;
+
+/**
+ * Every active chat tag this player owns. Tags are stored per server group, so they are grouped by
+ * gamemode rather than merged — a tag unlocked on skyblock is not unlocked on prison.
+ *
+ * The MiniMessage `format` is parsed by the proxy (its FormatUtils registers custom tags this app
+ * cannot resolve), so a tag with no `rendered` falls back to showing its raw source.
+ */
+function ChatTagsCard({ chatTags, loading }: { chatTags: PlayerChatTag[]; loading: boolean }) {
+  const groups = CHAT_TAG_GROUP_ORDER
+    .map((group) => ({ group, tags: chatTags.filter((tag) => tag.serverGroup === group) }))
+    .filter(({ tags }) => tags.length > 0);
+
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Tags size={14} className="text-primary" />
+          <CardTitle>Chat Tags</CardTitle>
+          <Badge variant="secondary" className="text-[10px]">{chatTags.length}</Badge>
+        </div>
+        <CardDescription>Unlocked tags, by gamemode</CardDescription>
+      </CardHeader>
+      <Separator />
+      <CardContent className="p-3">
+        {groups.length === 0 ? (
+          <p className="text-xs font-mono text-muted-foreground py-2 px-2">
+            {loading ? "Checking…" : "None found."}
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {groups.map(({ group, tags }) => (
+              <div key={group} className="space-y-1">
+                <p className={cn("text-[10px] font-mono uppercase font-semibold px-2",
+                  SERVER_COLORS[group.toLowerCase()] ?? "text-muted-foreground")}>
+                  {group}
+                </p>
+                {tags.map((tag) => (
+                  <div key={`${group}-${tag.id}`} className="px-2 py-1.5 rounded-lg hover:bg-muted/30 transition-colors">
+                    <div className="rounded-md border border-border bg-[#161616] px-2 py-1.5 overflow-x-auto">
+                      {tag.rendered ? (
+                        <MinecraftText component={tag.rendered} className="text-xs whitespace-nowrap" />
+                      ) : (
+                        <span className="text-[10px] font-mono text-muted-foreground whitespace-nowrap">{tag.format}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="text-[10px] font-mono text-muted-foreground truncate min-w-0 flex-1">
+                        {tag.name.replace(CUSTOM_TAG_PREFIX, "")}
+                      </span>
+                      <Badge variant={tag.type === "CUSTOM" ? "outline" : "secondary"} className="text-[9px] shrink-0">
+                        {tag.type}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function StatRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex items-center justify-between py-1.5">
@@ -381,6 +453,7 @@ export function PlayerDetail() {
   const { profile, loading } = usePlayerProfile(id);
   const [altsDays, setAltsDays] = useState(30);
   const { alts, loading: altsLoading } = usePlayerAlts(id, altsDays);
+  const { chatTags, loading: chatTagsLoading } = usePlayerChatTags(id);
   // Name comes from the profile fetch; seed it from router state (when navigating
   // from the list) so the header isn't blank before the profile loads.
   const seedName = (location.state as { name?: string } | null)?.name;
@@ -915,6 +988,7 @@ export function PlayerDetail() {
         <div className="space-y-6">
           <DiscordStatusCard discord={profile?.discord ?? null} loading={loading && !profile} />
           <PossibleAltsCard alts={alts} loading={altsLoading} days={altsDays} onDaysChange={setAltsDays} />
+          <ChatTagsCard chatTags={chatTags} loading={chatTagsLoading} />
         </div>
       </div>
     </div>
