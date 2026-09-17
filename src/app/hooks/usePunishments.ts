@@ -8,8 +8,15 @@ export function isUuid(value: string): boolean {
   return UUID_RE.test(value.trim());
 }
 
-export function getPunishmentStatus(p: PunishmentResponse): "Active" | "Expired" {
-  if (p.revoked) return "Expired";
+export type PunishmentStatus = "Active" | "Revoked" | "Expired";
+
+/**
+ * Revoked and Expired are both "no longer in effect" but are not the same thing: revoked means staff
+ * lifted it, expired means it ran its term. The API's `status=expired` filter covers both, since it is
+ * defined as "not active".
+ */
+export function getPunishmentStatus(p: PunishmentResponse): PunishmentStatus {
+  if (p.revoked) return "Revoked";
   if (p.expiresAt && new Date(p.expiresAt) <= new Date()) return "Expired";
   return "Active";
 }

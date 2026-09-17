@@ -17,6 +17,7 @@ import {
 import {PlayerAvatar} from "../components/PlayerAvatar";
 import {PlayerLink} from "../components/PlayerLink";
 import {PunishmentBadge} from "../components/PunishmentBadge";
+import {PunishmentStatusBadge} from "../components/PunishmentStatusBadge";
 import {usePunishments} from "../hooks/usePunishments";
 import {usePlayerCounts} from "../hooks/usePlayerCounts";
 import {usePlayerCountHistory} from "../hooks/usePlayerCountHistory";
@@ -218,6 +219,7 @@ export function DashboardTab() {
               <TableHead className="hidden md:table-cell">Reason</TableHead>
               <TableHead className="hidden lg:table-cell">Staff</TableHead>
               <TableHead>Date</TableHead>
+              <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -241,6 +243,7 @@ export function DashboardTab() {
                 <TableCell>
                   <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{new Date(p.issuedAt).toLocaleString()}</span>
                 </TableCell>
+                <TableCell><PunishmentStatusBadge punishment={p} /></TableCell>
               </TableRow>
             ))}
           </TableBody>

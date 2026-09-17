@@ -11,6 +11,7 @@ import {SimpleTooltip} from "../components/SimpleTooltip";
 import {PlayerAvatar} from "../components/PlayerAvatar";
 import {PlayerLink} from "../components/PlayerLink";
 import {PunishmentBadge} from "../components/PunishmentBadge";
+import {PunishmentStatusBadge} from "../components/PunishmentStatusBadge";
 import {TablePager} from "../components/TablePager";
 import {useDebounced} from "../hooks/useDebounced";
 import {getPunishmentStatus, usePunishmentLookup, usePunishments} from "../hooks/usePunishments";
@@ -124,7 +125,8 @@ export function PunishmentsTab() {
                 options={[
                   { value: "all", label: "All Status" },
                   { value: "active", label: "Active" },
-                  { value: "expired", label: "Expired" },
+                  // The API defines this as "not active", so it covers revoked as well as expired.
+                  { value: "expired", label: "Inactive" },
                 ]}
               />
             </div>
@@ -190,11 +192,7 @@ export function PunishmentsTab() {
                     <TableCell className="hidden md:table-cell">
                       <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{new Date(p.issuedAt).toLocaleString()}</span>
                     </TableCell>
-                    <TableCell>
-                      <Badge variant={status === "Active" ? "default" : "secondary"} className="text-[10px]">
-                        {status}
-                      </Badge>
-                    </TableCell>
+                    <TableCell><PunishmentStatusBadge punishment={p} /></TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5">
                         {status === "Active" && (p.type === "BAN" || p.type === "IP_BAN" || p.type === "MUTE") && (

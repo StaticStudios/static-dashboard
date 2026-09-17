@@ -49,7 +49,7 @@ import {
     usePlayerProfile,
 } from "../../hooks/usePlayers";
 import {useDebounced} from "../../hooks/useDebounced";
-import {getPunishmentStatus} from "../../hooks/usePunishments";
+import {PunishmentStatusBadge} from "../../components/PunishmentStatusBadge";
 import {fetchPunishments} from "../../api/punishments";
 import {fetchPlayerGiftCardBalance, fetchPlayerGiftCardHistory} from "../../api/giftcards";
 import type {GiftCardHistoryEntry, PlayerAlt, PlayerChatTag, PlayerProfile, PunishmentResponse} from "../../api/types";
@@ -697,9 +697,7 @@ export function PlayerDetail() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  punishments.map((p) => {
-                    const status = getPunishmentStatus(p);
-                    return (
+                  punishments.map((p) => (
                       <TableRow key={p.id}>
                         <TableCell><PunishmentBadge type={p.type} /></TableCell>
                         <TableCell>
@@ -713,12 +711,9 @@ export function PlayerDetail() {
                         <TableCell className="hidden md:table-cell">
                           <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{new Date(p.issuedAt).toLocaleString()}</span>
                         </TableCell>
-                        <TableCell>
-                          <Badge variant={status === "Active" ? "default" : "secondary"} className="text-[10px]">{status}</Badge>
-                        </TableCell>
+                        <TableCell><PunishmentStatusBadge punishment={p} /></TableCell>
                       </TableRow>
-                    );
-                  })
+                  ))
                 )}
                 {Array.from(
                   { length: PUNISHMENTS_PAGE_SIZE - (punishments.length === 0 ? 1 : punishments.length) },
