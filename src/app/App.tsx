@@ -11,6 +11,7 @@ import {PlayerDetail} from "./tabs/players/PlayerDetail";
 import {PunishmentsTab} from "./tabs/PunishmentsTab";
 import {ChatTab} from "./tabs/ChatTab";
 import {MotdTab} from "./tabs/MotdTab";
+import {StoreTab} from "./tabs/StoreTab";
 import {usePlayerCounts} from "./hooks/usePlayerCounts";
 
 export default function App() {
@@ -97,6 +98,7 @@ export default function App() {
               <Route path="/punishments" element={<PunishmentsTab />} />
               <Route path="/chat" element={<ChatTab />} />
               <Route path="/motd" element={<MotdTab />} />
+              <Route path="/store" element={<StoreTab />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </div>

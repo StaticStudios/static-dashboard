@@ -74,6 +74,85 @@ export interface GiftCardHistoryEntry {
   timestamp: string;
 }
 
+export interface StoreInfo {
+  accountId: number;
+  name: string | null;
+  domain: string | null;
+  currency: string | null;
+  currencySymbol: string | null;
+  gameType: string | null;
+  serverName: string | null;
+}
+
+export interface StorePackageRef {
+  id: number;
+  name: string;
+}
+
+export interface StorePaymentPlayerRef {
+  /** Null when Tebex's stored identifier is not a Minecraft UUID — render the name as plain text. */
+  id: string | null;
+  name: string | null;
+}
+
+export interface StorePayment {
+  transactionId: string;
+  date: string | null;
+  amount: number;
+  currency: string | null;
+  currencySymbol: string | null;
+  status: string;
+  gateway: string | null;
+  email: string | null;
+  player: StorePaymentPlayerRef;
+  packages: StorePackageRef[];
+  creatorCode: string | null;
+}
+
+export interface StoreRevenuePoint {
+  date: string;
+  revenue: number;
+  sales: number;
+}
+
+export interface StoreSummary {
+  currency: string | null;
+  currencySymbol: string | null;
+  revenue: number;
+  sales: number;
+  averageOrder: number;
+  days: number;
+  /** True when the payment-page ceiling was hit before the window was covered. */
+  truncated: boolean;
+  series: StoreRevenuePoint[];
+}
+
+export interface StoreCurrencyTotal {
+  currency: string;
+  symbol: string | null;
+  total: number;
+}
+
+export interface PlayerStoreSummary {
+  /** One entry per currency this player actually paid in; never summed or converted. */
+  totals: StoreCurrencyTotal[];
+  purchaseCount: number;
+  firstPurchase: string | null;
+  lastPurchase: string | null;
+  chargebackRate: number;
+  banCount: number;
+}
+
+export interface PlayerPurchase {
+  transactionId: string;
+  date: string | null;
+  amount: number;
+  currency: string | null;
+  symbol: string | null;
+  status: string;
+  packages: StorePackageRef[];
+}
+
 export interface ChatLogEntry {
   id: string;
   senderName: string;

@@ -47,3 +47,12 @@ export function rankAtLeast(rank: string | null | undefined, minimum: StaffPosit
   const held = STAFF_POSITIONS.indexOf(rank.toUpperCase() as StaffPosition);
   return held >= 0 && held >= STAFF_POSITIONS.indexOf(minimum);
 }
+
+/**
+ * Formats a money amount with a leading symbol, e.g. `-$4.99`. The symbol is supplied by the caller
+ * — store figures carry Tebex's own currency symbol, so nothing here assumes dollars.
+ */
+export function formatMoney(amount: number, symbol: string | null = "$"): string {
+  const sign = amount < 0 ? "-" : "";
+  return `${sign}${symbol ?? ""}${Math.abs(amount).toFixed(2)}`;
+}

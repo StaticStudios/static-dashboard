@@ -86,5 +86,7 @@ export async function apiSend<T>(path: string, method: "POST" | "PUT" | "PATCH" 
   if (!res.ok) {
     throw new Error(`API request to ${path} failed: ${res.status} ${res.statusText}`);
   }
+  // Command-style endpoints reply 204 with no body; parsing that as JSON would throw.
+  if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
