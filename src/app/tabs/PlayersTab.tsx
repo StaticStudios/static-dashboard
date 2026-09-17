@@ -5,14 +5,17 @@ import { Card } from "../components/ui/card";
 import { Separator } from "../components/ui/separator";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../components/ui/table";
 import { SearchInput } from "../components/SearchInput";
+import { FilterSelect } from "../components/FilterSelect";
 import { PlayerAvatar } from "../components/PlayerAvatar";
 import { usePlayers } from "../hooks/usePlayers";
 import { initials } from "../../lib/utils";
 
 export function PlayersTab() {
   const [search, setSearch] = useState("");
+  const [presence, setPresence] = useState("all");
   const navigate = useNavigate();
-  const { players, loading } = usePlayers(search);
+  const onlineOnly = presence === "online";
+  const { players, loading } = usePlayers(search, onlineOnly);
 
   return (
     <div className="space-y-6">
@@ -23,14 +26,28 @@ export function PlayersTab() {
         </p>
       </div>
 
-      {/* Search */}
+      {/* Search + presence filter */}
       <Card className="p-4">
-        <SearchInput
-          placeholder="Search players by name..."
-          value={search}
-          onChange={setSearch}
-          icon={<Search size={14} />}
-        />
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+          <SearchInput
+            className="flex-1"
+            placeholder="Search players by name..."
+            value={search}
+            onChange={setSearch}
+            icon={<Search size={14} />}
+          />
+          <div>
+            <FilterSelect
+              value={presence}
+              onValueChange={setPresence}
+              placeholder="Presence"
+              options={[
+                { value: "all", label: "All Players" },
+                { value: "online", label: "Online Now" },
+              ]}
+            />
+          </div>
+        </div>
       </Card>
 
       {/* Results */}
@@ -38,7 +55,8 @@ export function PlayersTab() {
         <div className="px-5 py-3.5 flex items-center gap-2">
           <Users size={13} className="text-primary" />
           <span className="text-xs font-mono text-muted-foreground">
-            <span className="text-foreground font-semibold">{players.length}</span> players
+            <span className="text-foreground font-semibold">{players.length}</span>{" "}
+            {onlineOnly ? "online" : "players"}
           </span>
         </div>
         <Separator />
@@ -54,7 +72,11 @@ export function PlayersTab() {
             {players.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={3} className="px-5 py-14 text-center text-sm font-mono text-muted-foreground">
-                  {loading ? "Loading players…" : "No players found."}
+                  {loading
+                    ? "Loading players…"
+                    : onlineOnly
+                      ? "No players online."
+                      : "No players found."}
                 </TableCell>
               </TableRow>
             ) : (
@@ -74,9 +96,16 @@ export function PlayersTab() {
                     <span className="text-[11px] font-mono text-muted-foreground">{p.id}</span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
-                      {p.lastSeen ? new Date(p.lastSeen).toLocaleString() : "—"}
-                    </span>
+                    {p.online ? (
+                      <span className="flex items-center gap-1.5 text-xs font-mono text-primary whitespace-nowrap">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                        Online now
+                      </span>
+                    ) : (
+                      <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
+                        {p.lastSeen ? new Date(p.lastSeen).toLocaleString() : "—"}
+                      </span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))

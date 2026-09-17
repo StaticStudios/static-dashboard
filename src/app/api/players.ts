@@ -10,8 +10,10 @@ import type {
     PlayerSummary
 } from "./types";
 
-export function fetchPlayers(query?: string, limit = 50) {
-  return apiFetch<PlayerSummary[]>("/api/v1/internal/players", { query, limit });
+/** `onlineOnly` is applied server-side: the result is capped at `limit`, so filtering it here would
+ *  only ever search within the most recent page. */
+export function fetchPlayers(query?: string, onlineOnly = false, limit = 50) {
+  return apiFetch<PlayerSummary[]>("/api/v1/internal/players", { query, limit, onlineOnly });
 }
 
 export function fetchPlayerProfile(id: string) {

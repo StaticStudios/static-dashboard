@@ -19,8 +19,12 @@ import type {
     PlayerSummary
 } from "../api/types";
 
-/** Debounced, server-side player search. Blank query returns the most-recently-seen players. */
-export function usePlayers(query: string) {
+/**
+ * Debounced, server-side player search. Blank query returns the most-recently-seen players.
+ * `onlineOnly` is part of the request rather than a filter over the result, so it searches every
+ * player rather than only the page already fetched.
+ */
+export function usePlayers(query: string, onlineOnly = false) {
   const [players, setPlayers] = useState<PlayerSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,7 +32,7 @@ export function usePlayers(query: string) {
     let cancelled = false;
     setLoading(true);
     const handle = setTimeout(() => {
-      fetchPlayers(query)
+      fetchPlayers(query, onlineOnly)
         .then((list) => {
           if (!cancelled) setPlayers(list);
         })
@@ -43,7 +47,7 @@ export function usePlayers(query: string) {
       cancelled = true;
       clearTimeout(handle);
     };
-  }, [query]);
+  }, [query, onlineOnly]);
 
   return { players, loading };
 }

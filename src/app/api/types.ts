@@ -106,6 +106,8 @@ export interface PlayerSummary {
   name: string;
   skinTextureValue: string | null;
   lastSeen: string | null;
+  /** Live proxy state, not a stored column. Includes vanished players — this list is staff-only. */
+  online: boolean;
 }
 
 export interface PlayerProfile {
