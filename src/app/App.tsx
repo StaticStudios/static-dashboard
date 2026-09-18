@@ -11,6 +11,7 @@ import {PlayerDetail} from "./tabs/players/PlayerDetail";
 import {PunishmentsTab} from "./tabs/PunishmentsTab";
 import {ChatTab} from "./tabs/ChatTab";
 import {MotdTab} from "./tabs/MotdTab";
+import {StatisticsTab} from "./tabs/StatisticsTab";
 import {usePlayerCounts} from "./hooks/usePlayerCounts";
 
 export default function App() {
@@ -20,7 +21,9 @@ export default function App() {
   const activeLabel = NAV_ITEMS.find(
     (n) => pathname === n.path || pathname.startsWith(`${n.path}/`)
   )?.label;
+  // Both of these are dense enough that the default container crowds them.
   const isPlayerDetail = pathname.startsWith("/players/");
+  const isWide = isPlayerDetail || pathname.startsWith("/statistics");
 
   return (
     <div
@@ -88,7 +91,7 @@ export default function App() {
 
         {/* Content */}
         <main className="flex-1 overflow-y-auto">
-          <div className={cn("mx-auto p-5 md:p-8", isPlayerDetail ? "max-w-7xl" : "max-w-6xl")}>
+          <div className={cn("mx-auto p-5 md:p-8", isWide ? "max-w-7xl" : "max-w-6xl")}>
             <Routes>
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<DashboardTab />} />
@@ -96,6 +99,7 @@ export default function App() {
               <Route path="/players/:playerId" element={<PlayerDetail />} />
               <Route path="/punishments" element={<PunishmentsTab />} />
               <Route path="/chat" element={<ChatTab />} />
+              <Route path="/statistics" element={<StatisticsTab />} />
               <Route path="/motd" element={<MotdTab />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>

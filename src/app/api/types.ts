@@ -74,6 +74,78 @@ export interface GiftCardHistoryEntry {
   timestamp: string;
 }
 
+/** One row of a "top N" breakdown. `key` is the raw grouped value, `label` is what to display. */
+export interface StatCount {
+  key: string;
+  label: string;
+  count: number;
+}
+
+/** One day of a single-series chart. Quiet days are present with `count: 0`. */
+export interface StatPoint {
+  date: string;
+  count: number;
+}
+
+/** One day of a stacked chart. `byGroup` has a zero-filled entry per gamemode in `groups`. */
+export interface GroupedStatPoint {
+  date: string;
+  total: number;
+  byGroup: Record<string, number>;
+}
+
+export interface PlayerStatCount {
+  id: string;
+  name: string | null;
+  skinTextureValue: string | null;
+  count: number;
+}
+
+export interface StatisticsOverview {
+  days: number;
+  totalEvents: number;
+  activePlayers: number;
+  actionTypes: number;
+  servers: number;
+  /** Every gamemode present in the window, in the order the chart should stack them. */
+  groups: string[];
+  series: GroupedStatPoint[];
+  activePlayerSeries: StatPoint[];
+  topActions: StatCount[];
+  topPlayers: PlayerStatCount[];
+}
+
+export interface SessionStatistics {
+  days: number;
+  logins: number;
+  uniquePlayers: number;
+  /** Sessions with both a begin and an end row — the only ones with a measurable length. */
+  completedSessions: number;
+  medianSeconds: number;
+  loginSeries: StatPoint[];
+  uniquePlayerSeries: StatPoint[];
+  lengthBuckets: StatCount[];
+  byGamemode: StatCount[];
+}
+
+export interface CrateReward {
+  crateId: string;
+  rewardName: string;
+  count: number;
+  /** This reward's fraction of its own crate's opens, 0-1. */
+  share: number;
+}
+
+export interface GameplayStatistics {
+  days: number;
+  topCommands: StatCount[];
+  crateOpens: StatCount[];
+  crateRewards: CrateReward[];
+  tradesStarted: number;
+  tradesCompleted: number;
+  tradeResults: StatCount[];
+}
+
 export interface ChatLogEntry {
   id: string;
   senderName: string;
