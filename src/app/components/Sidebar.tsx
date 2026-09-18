@@ -1,6 +1,6 @@
 import type {ReactNode} from "react";
 import {useLocation, useNavigate} from "react-router";
-import {LayoutDashboard, Megaphone, MessageSquare, Shield, Users, X} from "lucide-react";
+import {BarChart3, LayoutDashboard, Megaphone, MessageSquare, Shield, Users, X} from "lucide-react";
 import logoSrc from "../../public/logo.png";
 import {cn, formatRank, initials, rankAtLeast, skinFaceUrl, type StaffPosition} from "../../lib/utils";
 import {Separator} from "./ui/separator";
@@ -16,6 +16,7 @@ export const NAV_ITEMS: { key: TabKey; path: string; label: string; icon: ReactN
   { key: "players",     path: "/players",     label: "Players",      icon: <Users size={15} />           },
   { key: "punishments", path: "/punishments", label: "Punishments",  icon: <Shield size={15} />          },
   { key: "chat",        path: "/chat",        label: "In-Game Chat", icon: <MessageSquare size={15} />   },
+  { key: "statistics",  path: "/statistics",  label: "Statistics",   icon: <BarChart3 size={15} />,      minRank: "ADMIN" },
   { key: "motd",        path: "/motd",        label: "MOTD Editor",  icon: <Megaphone size={15} />,      minRank: "DEVELOPER" },
 ];
 
@@ -33,6 +34,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     punishments: activePunishments,
     chat:        chatCount ?? 0,
     motd:        null,
+    statistics:  null,
   };
 
   // Filtered here rather than in NAV_ITEMS, which App.tsx also reads for the breadcrumb label.
