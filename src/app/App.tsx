@@ -27,7 +27,7 @@ export default function App() {
 
   return (
     <div
-      className="flex h-screen bg-background overflow-hidden"
+      className="flex h-dvh bg-background overflow-hidden"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
       <style>{`
@@ -51,7 +51,7 @@ export default function App() {
       {/* Sidebar – mobile drawer */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-30 transition-transform duration-300 ease-in-out lg:hidden",
+          "fixed top-0 left-0 h-dvh z-30 transition-transform duration-300 ease-in-out lg:hidden",
           mobileSidebar ? "translate-x-0" : "-translate-x-full"
         )}
       >
