@@ -12,6 +12,8 @@ import {PunishmentsTab} from "./tabs/PunishmentsTab";
 import {ChatTab} from "./tabs/ChatTab";
 import {MotdTab} from "./tabs/MotdTab";
 import {StatisticsTab} from "./tabs/StatisticsTab";
+import {TicketsTab} from "./tabs/TicketsTab";
+import {TicketDetail} from "./tabs/tickets/TicketDetail";
 import {usePlayerCounts} from "./hooks/usePlayerCounts";
 
 export default function App() {
@@ -23,7 +25,8 @@ export default function App() {
   )?.label;
   // Both of these are dense enough that the default container crowds them.
   const isPlayerDetail = pathname.startsWith("/players/");
-  const isWide = isPlayerDetail || pathname.startsWith("/statistics");
+  // The transcript view, like a player profile, needs the wider column; the list does not.
+  const isWide = isPlayerDetail || pathname.startsWith("/statistics") || pathname.startsWith("/tickets/");
 
   return (
     <div
@@ -99,6 +102,8 @@ export default function App() {
               <Route path="/players/:playerId" element={<PlayerDetail />} />
               <Route path="/punishments" element={<PunishmentsTab />} />
               <Route path="/chat" element={<ChatTab />} />
+              <Route path="/tickets" element={<TicketsTab />} />
+              <Route path="/tickets/:channelSnowflake" element={<TicketDetail />} />
               <Route path="/statistics" element={<StatisticsTab />} />
               <Route path="/motd" element={<MotdTab />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
