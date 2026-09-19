@@ -263,3 +263,83 @@ export interface ActionSource {
   applicationGroup: string;
   applicationId: string;
 }
+
+/**
+ * Someone in a ticket transcript. A transcript only ever names people by Discord snowflake, so the
+ * player fields are filled in by the API where that account has been linked to a Minecraft account,
+ * and are null where it has not. `username` falls back to the name recorded in the transcript when
+ * the Discord member is no longer known.
+ */
+export interface TicketPerson {
+  snowflake: string;
+  username: string | null;
+  playerId: string | null;
+  playerName: string | null;
+  skinTextureValue: string | null;
+}
+
+/** A row in the Tickets list. Carries no messages — those come from the detail endpoint. */
+export interface TicketTranscriptSummary {
+  channelSnowflake: string;
+  channelName: string;
+  openedBy: TicketPerson | null;
+  closedBy: TicketPerson | null;
+  openedAt: string | null;
+  closedAt: string | null;
+  messageCount: number;
+  participantCount: number;
+}
+
+export interface TicketAttachment {
+  url: string | null;
+  filename: string | null;
+  size: number | null;
+}
+
+export interface TicketEmbed {
+  title: string | null;
+  description: string | null;
+  url: string | null;
+}
+
+export interface TicketMessage {
+  id: string;
+  author: TicketPerson | null;
+  bot: boolean;
+  content: string | null;
+  sentAt: string;
+  editedAt: string | null;
+  /** Another message's `id` in the same transcript. Can dangle — render a fallback. */
+  replyToMessageId: string | null;
+  attachments: TicketAttachment[];
+  embeds: TicketEmbed[];
+}
+
+export type TicketEventType = "OPENED" | "CLOSED" | "USER_ADDED";
+
+export interface TicketEvent {
+  type: TicketEventType;
+  actor: TicketPerson | null;
+  /** A channel snowflake, and only present on USER_ADDED. */
+  targetId: string | null;
+  at: string | null;
+}
+
+/**
+ * One full transcript. `messages` is already chronological. `participants` has Ticket Tool removed
+ * and will not necessarily include `openedBy` — an opener who never posted has no participant row.
+ */
+export interface TicketTranscriptDetail {
+  channelSnowflake: string;
+  channelName: string;
+  guildSnowflake: string;
+  openedBy: TicketPerson | null;
+  closedBy: TicketPerson | null;
+  openedAt: string | null;
+  closedAt: string | null;
+  savedAt: string;
+  messageCount: number;
+  participants: { user: TicketPerson | null; messageCount: number }[];
+  events: TicketEvent[];
+  messages: TicketMessage[];
+}

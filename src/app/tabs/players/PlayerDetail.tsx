@@ -17,6 +17,7 @@ import {
     Shield,
     Sparkles,
     Tags,
+    Ticket,
     Users as UsersIcon,
     Wallet,
 } from "lucide-react";
@@ -49,11 +50,14 @@ import {
     usePlayerProfile,
 } from "../../hooks/usePlayers";
 import {useDebounced} from "../../hooks/useDebounced";
+import {useMe} from "../../hooks/useMe";
+import {usePlayerTickets} from "../../hooks/useTickets";
+import {TicketPersonLabel} from "../../components/TicketPersonLabel";
 import {PunishmentStatusBadge} from "../../components/PunishmentStatusBadge";
 import {fetchPunishments} from "../../api/punishments";
 import {fetchPlayerGiftCardBalance, fetchPlayerGiftCardHistory} from "../../api/giftcards";
 import type {GiftCardHistoryEntry, PlayerAlt, PlayerChatTag, PlayerProfile, PunishmentResponse} from "../../api/types";
-import {cn, initials} from "../../../lib/utils";
+import {cn, initials, rankAtLeast} from "../../../lib/utils";
 import {actionIdColor} from "../../lib/auditActions";
 
 function formatPlaytime(seconds: number): string {
@@ -98,6 +102,7 @@ function num(n: number): string {
 
 const ACTIONS_PAGE_SIZE = 15;
 const PUNISHMENTS_PAGE_SIZE = 5;
+const TICKETS_PAGE_SIZE = 5;
 const CONVERSATIONS_PAGE_SIZE = 5;
 const GIFTCARD_HISTORY_PAGE_SIZE = 5;
 
@@ -455,6 +460,22 @@ export function PlayerDetail() {
     setPunishmentsPage(1);
   }, [id]);
 
+  // Support tickets are ADMIN-only, the same as the Tickets tab. The flag gates the request as well
+  // as the card, so staff below that tier never fire a call the API would refuse.
+  const { me } = useMe();
+  const canSeeTickets = rankAtLeast(me?.rank, "ADMIN");
+  const [ticketsPage, setTicketsPage] = useState(1);
+  const {
+    tickets,
+    totalElements: ticketsTotal,
+    totalPages: ticketsTotalPages,
+    loading: ticketsLoading,
+  } = usePlayerTickets(id, ticketsPage, TICKETS_PAGE_SIZE, canSeeTickets);
+
+  useEffect(() => {
+    setTicketsPage(1);
+  }, [id]);
+
   const { balance: giftCardBalance, loading: giftCardBalanceLoading } = usePlayerGiftCardBalance(id);
   const [giftCardHistoryPage, setGiftCardHistoryPage] = useState(1);
   const {
@@ -718,6 +739,89 @@ export function PlayerDetail() {
               </>
             )}
           </Card>
+
+          {/* Support tickets */}
+          {canSeeTickets && (
+            <Card className="overflow-hidden">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Ticket size={14} className="text-primary" />
+                  <CardTitle>Support Tickets</CardTitle>
+                  <Badge variant="secondary" className="text-[10px]">{ticketsTotal}</Badge>
+                </div>
+                <CardDescription>
+                  Tickets this player opened, closed, or posted in, found through their linked Discord account
+                </CardDescription>
+              </CardHeader>
+              <Separator />
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Ticket</TableHead>
+                    <TableHead className="hidden md:table-cell">Opened By</TableHead>
+                    <TableHead className="hidden lg:table-cell">Messages</TableHead>
+                    <TableHead>Closed</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tickets.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="px-5 py-10 text-center text-sm font-mono text-muted-foreground">
+                        {ticketsLoading
+                          ? "Loading tickets…"
+                          : profile?.discord
+                            ? "No tickets on record."
+                            : "No linked Discord account, so no tickets can be matched."}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    tickets.map((ticket, i) => (
+                      <TableRow
+                        key={ticket.channelSnowflake}
+                        className="cursor-pointer"
+                        onClick={() => navigate(`/tickets/${ticket.channelSnowflake}`)}
+                      >
+                        <TableCell>
+                          <span className="text-xs font-mono text-foreground whitespace-nowrap">#{ticket.channelName}</span>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <TicketPersonLabel person={ticket.openedBy} seed={i} />
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          <span className="text-xs font-mono text-muted-foreground tabular-nums">{ticket.messageCount}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
+                            {ticket.closedAt ? new Date(ticket.closedAt).toLocaleString() : "Still open"}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                  {Array.from(
+                    { length: TICKETS_PAGE_SIZE - (tickets.length === 0 ? 1 : tickets.length) },
+                    (_, i) => (
+                      <TableRow key={`ticket-filler-${i}`} className="hover:bg-transparent">
+                        <TableCell colSpan={4}>&nbsp;</TableCell>
+                      </TableRow>
+                    )
+                  )}
+                </TableBody>
+              </Table>
+              {ticketsTotalPages > 1 && (
+                <>
+                  <Separator />
+                  <div className="px-5 py-3.5 flex items-center justify-between">
+                    <span className="text-xs font-mono text-muted-foreground">
+                      Showing {(ticketsPage - 1) * TICKETS_PAGE_SIZE + 1}
+                      –{Math.min(ticketsPage * TICKETS_PAGE_SIZE, ticketsTotal)} of {ticketsTotal}
+                    </span>
+                    <TablePager page={ticketsPage} totalPages={ticketsTotalPages} onPageChange={setTicketsPage} />
+                  </div>
+                </>
+              )}
+            </Card>
+          )}
 
           {/* Giftcard history */}
           <Card className="overflow-hidden">
