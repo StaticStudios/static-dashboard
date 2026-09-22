@@ -10,6 +10,7 @@ import {Separator} from "../../components/ui/separator";
 import {Skeleton} from "../../components/ui/skeleton";
 import {PlayerAvatar} from "../../components/PlayerAvatar";
 import {SimpleTooltip} from "../../components/SimpleTooltip";
+import {Timestamp, formatTimestamp} from "../../components/Timestamp";
 import {TicketPersonLabel} from "../../components/TicketPersonLabel";
 import {useMe} from "../../hooks/useMe";
 import {useTicket} from "../../hooks/useTickets";
@@ -125,16 +126,16 @@ function Transcript() {
                   <TicketPersonLabel person={ticket.openedBy} />
                 </Field>
                 <Field label="Opened">
-                  <Timestamp iso={ticket.openedAt} />
+                  <Timestamp value={ticket.openedAt} className="text-xs text-foreground" />
                 </Field>
                 <Field label="Closed by">
                   <TicketPersonLabel person={ticket.closedBy} seed={1} />
                 </Field>
                 <Field label="Closed">
-                  <Timestamp iso={ticket.closedAt} fallback="Still open" />
+                  <Timestamp value={ticket.closedAt} fallback="Still open" className="text-xs text-foreground" />
                 </Field>
                 <Field label="Archived">
-                  <Timestamp iso={ticket.savedAt} />
+                  <Timestamp value={ticket.savedAt} className="text-xs text-foreground" />
                 </Field>
               </CardContent>
             </Card>
@@ -225,7 +226,7 @@ function MessageRow({
           <span className="text-muted-foreground mr-1">:</span>
           <span className="text-foreground/75 whitespace-pre-wrap break-words">{message.content ?? ""}</span>
           {message.editedAt && (
-            <SimpleTooltip content={`Edited ${new Date(message.editedAt).toLocaleString()}`}>
+            <SimpleTooltip content={`Edited ${formatTimestamp(message.editedAt) ?? "at an unknown time"}`}>
               <span className="text-[10px] text-muted-foreground/50 ml-1.5 cursor-default">(edited)</span>
             </SimpleTooltip>
           )}
@@ -280,19 +281,6 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
       </p>
       {children}
     </div>
-  );
-}
-
-function Timestamp({ iso, fallback = "—" }: { iso: string | null; fallback?: string }) {
-  if (!iso) {
-    return <span className="text-xs font-mono text-muted-foreground">{fallback}</span>;
-  }
-
-  const d = new Date(iso);
-  return (
-    <SimpleTooltip content={d.toLocaleString()}>
-      <span className="text-xs font-mono text-foreground cursor-default">{d.toLocaleDateString()}</span>
-    </SimpleTooltip>
   );
 }
 

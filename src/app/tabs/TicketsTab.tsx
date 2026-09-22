@@ -10,6 +10,7 @@ import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "../
 import {SearchInput} from "../components/SearchInput";
 import {DateRangeFilter} from "../components/DateRangeFilter";
 import {TablePager} from "../components/TablePager";
+import {Timestamp} from "../components/Timestamp";
 import {TicketPersonLabel} from "../components/TicketPersonLabel";
 import {useDebounced} from "../hooks/useDebounced";
 import {useMe} from "../hooks/useMe";
@@ -131,9 +132,7 @@ function Tickets() {
                     </span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
-                      {ticket.closedAt ? new Date(ticket.closedAt).toLocaleString() : "Still open"}
-                    </span>
+                    <Timestamp value={ticket.closedAt} fallback="Still open" className="text-xs" />
                   </TableCell>
                 </TableRow>
               ))

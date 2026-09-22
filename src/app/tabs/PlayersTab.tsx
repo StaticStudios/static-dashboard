@@ -7,6 +7,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from ".
 import { SearchInput } from "../components/SearchInput";
 import { FilterSelect } from "../components/FilterSelect";
 import { PlayerAvatar } from "../components/PlayerAvatar";
+import { Timestamp } from "../components/Timestamp";
 import { usePlayers } from "../hooks/usePlayers";
 import { initials } from "../../lib/utils";
 
@@ -102,9 +103,7 @@ export function PlayersTab() {
                         Online now
                       </span>
                     ) : (
-                      <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
-                        {p.lastSeen ? new Date(p.lastSeen).toLocaleString() : "—"}
-                      </span>
+                      <Timestamp value={p.lastSeen} className="text-xs" />
                     )}
                   </TableCell>
                 </TableRow>
