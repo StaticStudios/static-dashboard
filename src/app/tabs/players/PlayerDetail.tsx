@@ -31,9 +31,9 @@ import {Collapsible, CollapsibleContent, CollapsibleTrigger} from "../../compone
 import {FilterSelect} from "../../components/FilterSelect";
 import {MultiSelectFilter} from "../../components/MultiSelectFilter";
 import {SearchInput} from "../../components/SearchInput";
-import {SimpleTooltip} from "../../components/SimpleTooltip";
 import {SpoilerText} from "../../components/SpoilerText";
 import {PlayerAvatar} from "../../components/PlayerAvatar";
+import {Timestamp} from "../../components/Timestamp";
 import {PlayerLink} from "../../components/PlayerLink";
 import {MinecraftText} from "../../components/MinecraftText";
 import {PunishmentBadge} from "../../components/PunishmentBadge";
@@ -83,17 +83,6 @@ function formatGapLabel(ms: number): string {
   if (hours < 24) return remMinutes ? `${hours}h ${remMinutes}m gap` : `${hours}h gap`;
   const days = Math.floor(hours / 24);
   return `${days}d gap`;
-}
-
-/** Shows the date only, with the full date + time revealed on hover. */
-function DateValue({ iso }: { iso: string | null }) {
-  if (!iso) return <>—</>;
-  const d = new Date(iso);
-  return (
-    <SimpleTooltip content={d.toLocaleString()}>
-      <span className="cursor-default">{d.toLocaleDateString()}</span>
-    </SimpleTooltip>
-  );
 }
 
 function num(n: number): string {
@@ -580,8 +569,8 @@ export function PlayerDetail() {
       {/* Quick stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <StatCard icon={<Clock size={16} />} label="Total Playtime" value={profile ? formatPlaytime(profile.playtime.total) : "…"} />
-        <StatCard icon={<Calendar size={16} />} label="First Joined" value={profile ? <DateValue iso={profile.firstEverJoined} /> : "…"} />
-        <StatCard icon={<Activity size={16} />} label="Last Seen" value={profile ? <DateValue iso={profile.lastSeen} /> : "…"} />
+        <StatCard icon={<Calendar size={16} />} label="First Joined" value={profile ? <Timestamp value={profile.firstEverJoined} className="text-sm text-foreground" /> : "…"} />
+        <StatCard icon={<Activity size={16} />} label="Last Seen" value={profile ? <Timestamp value={profile.lastSeen} className="text-sm text-foreground" /> : "…"} />
         <StatCard icon={<Shield size={16} />} label="Punishments" value={punishmentsLoading ? "…" : punishmentsTotal} />
         <StatCard icon={<Wallet size={16} />} label="Giftcard Balance" value={giftCardBalanceLoading ? "…" : currency(giftCardBalance ?? 0)} />
       </div>
@@ -710,7 +699,7 @@ export function PlayerDetail() {
                           </PlayerLink>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
-                          <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{new Date(p.issuedAt).toLocaleString()}</span>
+                          <Timestamp value={p.issuedAt} className="text-xs" />
                         </TableCell>
                         <TableCell><PunishmentStatusBadge punishment={p} /></TableCell>
                       </TableRow>
@@ -791,9 +780,7 @@ export function PlayerDetail() {
                           <span className="text-xs font-mono text-muted-foreground tabular-nums">{ticket.messageCount}</span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
-                            {ticket.closedAt ? new Date(ticket.closedAt).toLocaleString() : "Still open"}
-                          </span>
+                          <Timestamp value={ticket.closedAt} fallback="Still open" className="text-xs" />
                         </TableCell>
                       </TableRow>
                     ))
@@ -871,7 +858,7 @@ export function PlayerDetail() {
                         </span>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
-                        <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{new Date(entry.timestamp).toLocaleString()}</span>
+                        <Timestamp value={entry.timestamp} className="text-xs" />
                       </TableCell>
                     </TableRow>
                   ))
@@ -989,7 +976,7 @@ export function PlayerDetail() {
                         />
                         <Badge variant="outline" className={cn("text-[10px] font-mono shrink-0", actionIdColor(a.actionId))}>{a.actionId}</Badge>
                         <span className="text-xs font-mono text-muted-foreground truncate flex-1">{a.applicationGroup}/{a.applicationId}</span>
-                        <span className="text-[11px] font-mono text-muted-foreground whitespace-nowrap">{new Date(a.timestamp).toLocaleString()}</span>
+                        <Timestamp value={a.timestamp} className="text-[11px]" />
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <div className="px-3 pb-3 pt-0">
@@ -1085,9 +1072,7 @@ export function PlayerDetail() {
                             )}
                           </span>
                           {lastTimestamp && (
-                            <span className="text-[10px] font-mono text-muted-foreground">
-                              {new Date(lastTimestamp).toLocaleString()}
-                            </span>
+                            <Timestamp value={lastTimestamp} className="text-[10px]" />
                           )}
                         </div>
                         <div className="p-2 space-y-0.5">

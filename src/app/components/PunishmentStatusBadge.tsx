@@ -1,5 +1,6 @@
 import { Badge } from "./ui/badge";
 import { SimpleTooltip } from "./SimpleTooltip";
+import { formatTimestamp } from "./Timestamp";
 import { getPunishmentStatus } from "../hooks/usePunishments";
 import type { PunishmentResponse } from "../api/types";
 
@@ -24,7 +25,7 @@ export function PunishmentStatusBadge({ punishment }: { punishment: PunishmentRe
   if (status !== "Revoked") return badge;
 
   const by = punishment.revokedByName;
-  const at = punishment.revokedAt ? new Date(punishment.revokedAt).toLocaleString() : null;
+  const at = formatTimestamp(punishment.revokedAt);
   if (!by && !at) return badge;
 
   return (

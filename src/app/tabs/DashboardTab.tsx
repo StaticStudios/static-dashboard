@@ -18,6 +18,7 @@ import {PlayerAvatar} from "../components/PlayerAvatar";
 import {PlayerLink} from "../components/PlayerLink";
 import {PunishmentBadge} from "../components/PunishmentBadge";
 import {PunishmentStatusBadge} from "../components/PunishmentStatusBadge";
+import {Timestamp} from "../components/Timestamp";
 import {usePunishments} from "../hooks/usePunishments";
 import {usePlayerCounts} from "../hooks/usePlayerCounts";
 import {usePlayerCountHistory} from "../hooks/usePlayerCountHistory";
@@ -241,7 +242,7 @@ export function DashboardTab() {
                   </PlayerLink>
                 </TableCell>
                 <TableCell>
-                  <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{new Date(p.issuedAt).toLocaleString()}</span>
+                  <Timestamp value={p.issuedAt} className="text-xs" />
                 </TableCell>
                 <TableCell><PunishmentStatusBadge punishment={p} /></TableCell>
               </TableRow>
