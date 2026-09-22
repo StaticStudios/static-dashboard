@@ -6,6 +6,7 @@ import type {
     Page,
     PlayerAlt,
     PlayerChatTag,
+    PlayerGameRank,
     PlayerProfile,
     PlayerSummary
 } from "./types";
@@ -60,6 +61,11 @@ export function fetchPlayerAlts(id: string, days = 30) {
 
 export function fetchPlayerChatTags(id: string) {
   return apiFetch<PlayerChatTag[]>(`/api/v1/internal/players/${id}/chat-tags`);
+}
+
+/** Every rank the player holds across all gamemodes, highest priority first. 502 when the proxy is down. */
+export function fetchPlayerGameRanks(id: string) {
+  return apiFetch<PlayerGameRank[]>(`/api/v1/internal/players/${id}/game-ranks`);
 }
 
 export function fetchPlayerConversations(

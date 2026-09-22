@@ -59,6 +59,24 @@ export interface PlayerChatTag {
   rendered: MinecraftComponent | null;
 }
 
+/**
+ * An in-game rank a player holds (a LuckPerms group), from the proxy. Not the staff `rank` on `useMe()`,
+ * which is a Discord-derived `StaffPosition`.
+ */
+export interface PlayerGameRank {
+  /** LuckPerms group, `<type>.<name>`, e.g. `skyblock.emperor`. */
+  id: string;
+  name: string;
+  type: "PLAYER" | "SKYBLOCK" | "PRISON" | "STAFF" | "MISC";
+  /** Gamemode the rank belongs to; null for network-wide ranks (staff, player, misc). */
+  serverGroup: ServerGroup | null;
+  priority: number;
+  /** Raw MiniMessage source of the rank's prefix. */
+  prefixFormat: string;
+  /** `prefixFormat` parsed by the proxy; null when it failed to parse. */
+  prefixRendered: MinecraftComponent | null;
+}
+
 export interface GiftCardBalanceResponse {
   balance: number;
 }

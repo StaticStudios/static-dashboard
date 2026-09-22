@@ -47,6 +47,7 @@ import {
     usePlayerAlts,
     usePlayerChatTags,
     usePlayerConversations,
+    usePlayerGameRanks,
     usePlayerProfile,
 } from "../../hooks/usePlayers";
 import {useDebounced} from "../../hooks/useDebounced";
@@ -56,7 +57,16 @@ import {TicketPersonLabel} from "../../components/TicketPersonLabel";
 import {PunishmentStatusBadge} from "../../components/PunishmentStatusBadge";
 import {fetchPunishments} from "../../api/punishments";
 import {fetchPlayerGiftCardBalance, fetchPlayerGiftCardHistory} from "../../api/giftcards";
-import type {GiftCardHistoryEntry, PlayerAlt, PlayerChatTag, PlayerProfile, PunishmentResponse} from "../../api/types";
+import type {
+    GiftCardHistoryEntry,
+    MinecraftComponent,
+    PlayerAlt,
+    PlayerChatTag,
+    PlayerGameRank,
+    PlayerProfile,
+    PunishmentResponse,
+    ServerGroup,
+} from "../../api/types";
 import {cn, initials, rankAtLeast} from "../../../lib/utils";
 import {actionIdColor} from "../../lib/auditActions";
 
@@ -388,13 +398,7 @@ function ChatTagsCard({ chatTags, loading }: { chatTags: PlayerChatTag[]; loadin
                 </p>
                 {tags.map((tag) => (
                   <div key={`${group}-${tag.id}`} className="px-2 py-1.5 rounded-lg hover:bg-muted/30 transition-colors">
-                    <div className="rounded-md border border-border bg-[#161616] px-2 py-1.5 overflow-x-auto">
-                      {tag.rendered ? (
-                        <MinecraftText component={tag.rendered} className="text-xs whitespace-nowrap" />
-                      ) : (
-                        <span className="text-[10px] font-mono text-muted-foreground whitespace-nowrap">{tag.format}</span>
-                      )}
-                    </div>
+                    <MinecraftChip rendered={tag.rendered} format={tag.format} className="block py-1.5" />
                     <div className="flex items-center gap-1.5 mt-1">
                       <span className="text-[10px] font-mono text-muted-foreground truncate min-w-0 flex-1">
                         {tag.name.replace(CUSTOM_TAG_PREFIX, "")}
@@ -411,6 +415,44 @@ function ChatTagsCard({ chatTags, loading }: { chatTags: PlayerChatTag[]; loadin
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * Proxy-rendered Minecraft text (a chat tag or rank prefix) on the dark in-game background. Falls back
+ * to the raw MiniMessage `format` when the proxy could not parse it.
+ */
+function MinecraftChip({ rendered, format, className }: {
+  rendered: MinecraftComponent | null;
+  format: string;
+  className?: string;
+}) {
+  return (
+    <span className={cn("inline-block max-w-full rounded-md border border-border bg-[#161616] px-2 py-0.5 overflow-x-auto font-sans font-normal", className)}>
+      {rendered ? (
+        <MinecraftText component={rendered} className="text-xs whitespace-nowrap" />
+      ) : (
+        <span className="text-[10px] font-mono text-muted-foreground whitespace-nowrap">{format}</span>
+      )}
+    </span>
+  );
+}
+
+/** A gamemode's rank for its card. Skyblock and Prison keep only the highest rank of their type, so there is at most one. */
+function GameRankValue({ gameRanks, serverGroup, loading, error }: {
+  gameRanks: PlayerGameRank[];
+  serverGroup: ServerGroup;
+  loading: boolean;
+  error: string | null;
+}) {
+  if (loading) return "…";
+  if (error) return <span className="text-muted-foreground font-normal" title={error}>Unavailable</span>;
+  const rank = gameRanks.find((r) => r.serverGroup === serverGroup);
+  if (!rank) return "None";
+  return (
+    <span title={rank.id}>
+      <MinecraftChip rendered={rank.prefixRendered} format={rank.prefixFormat} />
+    </span>
   );
 }
 
@@ -433,6 +475,7 @@ export function PlayerDetail() {
   const [altsDays, setAltsDays] = useState(30);
   const { alts, loading: altsLoading } = usePlayerAlts(id, altsDays);
   const { chatTags, loading: chatTagsLoading } = usePlayerChatTags(id);
+  const { gameRanks, loading: gameRanksLoading, error: gameRanksError } = usePlayerGameRanks(id);
   // Name comes from the profile fetch; seed it from router state (when navigating
   // from the list) so the header isn't blank before the profile loads.
   const seedName = (location.state as { name?: string } | null)?.name;
@@ -590,32 +633,39 @@ export function PlayerDetail() {
                 </div>
               </CardHeader>
               <CardContent>
-                {profile?.skyblock ? (
-                  <div className="divide-y divide-border">
-                    <StatRow label="Playtime" value={formatPlaytime(profile.playtime.skyblock)} />
-                    <StatRow label="Money" value={num(profile.skyblock.money)} />
-                    <StatRow label="Prestige Points" value={num(profile.skyblock.prestigePoints)} />
-                    <StatRow label="Dungeon Shards" value={num(profile.skyblock.dungeonShards)} />
-                    <StatRow
-                      label="Island"
-                      value={
-                        profile.skyblock.island ? (
-                          <span className="flex items-center gap-1.5">
-                            <Home size={12} className="text-blue-400" />
-                            {profile.skyblock.island.name}
-                            {profile.skyblock.island.owner && (
-                              <Badge variant="secondary" className="text-[10px]">Owner</Badge>
-                            )}
-                          </span>
-                        ) : (
-                          "None"
-                        )
-                      }
-                    />
-                  </div>
-                ) : (
-                  <p className="text-xs font-mono text-muted-foreground py-2">No Skyblock data.</p>
-                )}
+                <div className="divide-y divide-border">
+                  {/* Outside the profile check: a bought rank can exist before the first join. */}
+                  <StatRow
+                    label="Game Rank"
+                    value={<GameRankValue gameRanks={gameRanks} serverGroup="SKYBLOCK" loading={gameRanksLoading} error={gameRanksError} />}
+                  />
+                  {profile?.skyblock ? (
+                    <>
+                      <StatRow label="Playtime" value={formatPlaytime(profile.playtime.skyblock)} />
+                      <StatRow label="Money" value={num(profile.skyblock.money)} />
+                      <StatRow label="Prestige Points" value={num(profile.skyblock.prestigePoints)} />
+                      <StatRow label="Dungeon Shards" value={num(profile.skyblock.dungeonShards)} />
+                      <StatRow
+                        label="Island"
+                        value={
+                          profile.skyblock.island ? (
+                            <span className="flex items-center gap-1.5">
+                              <Home size={12} className="text-blue-400" />
+                              {profile.skyblock.island.name}
+                              {profile.skyblock.island.owner && (
+                                <Badge variant="secondary" className="text-[10px]">Owner</Badge>
+                              )}
+                            </span>
+                          ) : (
+                            "None"
+                          )
+                        }
+                      />
+                    </>
+                  ) : (
+                    <p className="text-xs font-mono text-muted-foreground py-2">No Skyblock data.</p>
+                  )}
+                </div>
               </CardContent>
             </Card>
 
@@ -628,33 +678,40 @@ export function PlayerDetail() {
                 </div>
               </CardHeader>
               <CardContent>
-                {profile?.prison ? (
-                  <div className="divide-y divide-border">
-                    <StatRow label="Playtime" value={formatPlaytime(profile.playtime.prison)} />
-                    <StatRow label="Money" value={num(profile.prison.money)} />
-                    <StatRow label="Tokens" value={num(profile.prison.tokens)} />
-                    <StatRow label="Prestige Points" value={num(profile.prison.prestigePoints)} />
-                    <StatRow label="Prestige / Rank" value={`${profile.prison.prestige} / ${mineRankLetter(profile.prison.mineRank)}`} />
-                    <StatRow
-                      label="Gang"
-                      value={
-                        profile.prison.gang ? (
-                          <span className="flex items-center gap-1.5">
-                            <UsersIcon size={12} className="text-amber-400" />
-                            {profile.prison.gang.name}
-                            {profile.prison.gang.owner && (
-                              <Badge variant="secondary" className="text-[10px]">Owner</Badge>
-                            )}
-                          </span>
-                        ) : (
-                          "None"
-                        )
-                      }
-                    />
-                  </div>
-                ) : (
-                  <p className="text-xs font-mono text-muted-foreground py-2">No Prison data.</p>
-                )}
+                <div className="divide-y divide-border">
+                  {/* Outside the profile check: a bought rank can exist before the first join. */}
+                  <StatRow
+                    label="Game Rank"
+                    value={<GameRankValue gameRanks={gameRanks} serverGroup="PRISON" loading={gameRanksLoading} error={gameRanksError} />}
+                  />
+                  {profile?.prison ? (
+                    <>
+                      <StatRow label="Playtime" value={formatPlaytime(profile.playtime.prison)} />
+                      <StatRow label="Money" value={num(profile.prison.money)} />
+                      <StatRow label="Tokens" value={num(profile.prison.tokens)} />
+                      <StatRow label="Prestige Points" value={num(profile.prison.prestigePoints)} />
+                      <StatRow label="Prestige / Rank" value={`${profile.prison.prestige} / ${mineRankLetter(profile.prison.mineRank)}`} />
+                      <StatRow
+                        label="Gang"
+                        value={
+                          profile.prison.gang ? (
+                            <span className="flex items-center gap-1.5">
+                              <UsersIcon size={12} className="text-amber-400" />
+                              {profile.prison.gang.name}
+                              {profile.prison.gang.owner && (
+                                <Badge variant="secondary" className="text-[10px]">Owner</Badge>
+                              )}
+                            </span>
+                          ) : (
+                            "None"
+                          )
+                        }
+                      />
+                    </>
+                  ) : (
+                    <p className="text-xs font-mono text-muted-foreground py-2">No Prison data.</p>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </div>
