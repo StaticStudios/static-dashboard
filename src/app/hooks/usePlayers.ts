@@ -6,6 +6,7 @@ import {
     fetchPlayerAlts,
     fetchPlayerChatTags,
     fetchPlayerConversations,
+    fetchPlayerGameRanks,
     fetchPlayerProfile,
     fetchPlayers,
 } from "../api/players";
@@ -15,6 +16,7 @@ import type {
     ConversationBlock,
     PlayerAlt,
     PlayerChatTag,
+    PlayerGameRank,
     PlayerProfile,
     PlayerSummary
 } from "../api/types";
@@ -211,6 +213,45 @@ export function usePlayerChatTags(id: string | null) {
   }, [id]);
 
   return { chatTags, loading };
+}
+
+/**
+ * Every in-game rank this player holds, across all gamemodes. Unlike chat tags a failure is kept as
+ * `error`: with the proxy down there is no data at all, and an empty list would read as "no rank".
+ */
+export function usePlayerGameRanks(id: string | null) {
+  const [gameRanks, setGameRanks] = useState<PlayerGameRank[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id) {
+      setGameRanks([]);
+      setError(null);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    fetchPlayerGameRanks(id)
+      .then((list) => {
+        if (!cancelled) setGameRanks(list);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setGameRanks([]);
+          setError("Could not load ranks.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  return { gameRanks, loading, error };
 }
 
 /** Recent Conversations: paginated context windows around every message this player sent/received. */
