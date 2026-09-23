@@ -542,13 +542,14 @@ export function PlayerDetail() {
       {/* Left: everything else / Right: possible alts */}
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] gap-6 items-start">
         <div className="space-y-6">
-      {/* Quick stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      {/* Quick stats. The two dates are the longest values and get the most width; the punishment
+          count is a short number, so it gives up space. */}
+      <div className="grid grid-cols-2 lg:grid-cols-[1fr_1.35fr_1.35fr_0.6fr_1.15fr] gap-3">
         <StatCard icon={<Clock size={16} />} label="Total Playtime" value={profile ? formatPlaytime(profile.playtime.total) : "…"} />
         <StatCard icon={<Calendar size={16} />} label="First Joined" value={profile ? <Timestamp value={profile.firstEverJoined} className="text-sm text-foreground" /> : "…"} />
         <StatCard icon={<Activity size={16} />} label="Last Seen" value={profile ? <Timestamp value={profile.lastSeen} className="text-sm text-foreground" /> : "…"} />
         <StatCard icon={<Shield size={16} />} label="Punishments" value={punishmentsLoading ? "…" : punishmentsTotal} />
-        <StatCard icon={<Wallet size={16} />} label="Giftcard Balance" value={giftCardBalanceLoading ? "…" : currency(giftCardBalance ?? 0)} />
+        <StatCard icon={<Wallet size={16} />} className="col-span-2 lg:col-span-1" label="Giftcard Balance" value={giftCardBalanceLoading ? "…" : currency(giftCardBalance ?? 0)} />
       </div>
 
       {loading && !profile ? (
