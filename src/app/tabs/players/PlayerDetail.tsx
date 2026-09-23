@@ -1,4 +1,3 @@
-import type {ReactNode} from "react";
 import {Fragment, useEffect, useMemo, useState} from "react";
 import {useLocation, useNavigate, useParams} from "react-router";
 import {
@@ -35,6 +34,8 @@ import {SpoilerText} from "../../components/SpoilerText";
 import {PlayerAvatar} from "../../components/PlayerAvatar";
 import {Timestamp} from "../../components/Timestamp";
 import {PlayerLink} from "../../components/PlayerLink";
+import {DetailLink} from "../../components/DetailLink";
+import {num, StatCard, StatRow} from "../../components/StatBlocks";
 import {MinecraftText} from "../../components/MinecraftText";
 import {PunishmentBadge} from "../../components/PunishmentBadge";
 import {GiftCardTypeBadge} from "../../components/GiftCardTypeBadge";
@@ -83,10 +84,6 @@ function formatGapLabel(ms: number): string {
   if (hours < 24) return remMinutes ? `${hours}h ${remMinutes}m gap` : `${hours}h gap`;
   const days = Math.floor(hours / 24);
   return `${days}d gap`;
-}
-
-function num(n: number): string {
-  return n.toLocaleString();
 }
 
 const ACTIONS_PAGE_SIZE = 15;
@@ -200,18 +197,6 @@ function usePlayerGiftCardHistory(id: string, page: number) {
   }, [id, page]);
 
   return { history, totalElements, totalPages, loading };
-}
-
-function StatCard({ icon, label, value }: { icon: ReactNode; label: string; value: ReactNode }) {
-  return (
-    <Card className="px-4 py-3.5 flex-row items-center gap-3">
-      <span className="text-primary">{icon}</span>
-      <div className="min-w-0">
-        <p className="text-lg font-bold font-mono text-foreground leading-none truncate">{value}</p>
-        <p className="text-[10px] font-mono text-muted-foreground mt-0.5">{label}</p>
-      </div>
-    </Card>
-  );
 }
 
 /** Whether this player has linked a Discord account via the in-game /discord link command. */
@@ -414,15 +399,6 @@ function ChatTagsCard({ chatTags, loading }: { chatTags: PlayerChatTag[]; loadin
   );
 }
 
-function StatRow({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="flex items-center justify-between py-1.5">
-      <span className="text-xs font-mono text-muted-foreground">{label}</span>
-      <span className="text-xs font-mono text-foreground font-semibold">{value}</span>
-    </div>
-  );
-}
-
 export function PlayerDetail() {
   const { playerId = "" } = useParams();
   const navigate = useNavigate();
@@ -601,8 +577,14 @@ export function PlayerDetail() {
                       value={
                         profile.skyblock.island ? (
                           <span className="flex items-center gap-1.5">
-                            <Home size={12} className="text-blue-400" />
-                            {profile.skyblock.island.name}
+                            <DetailLink
+                              to={`/islands/${profile.skyblock.island.id}`}
+                              name={profile.skyblock.island.name}
+                              className="gap-1.5"
+                            >
+                              <Home size={12} className="text-blue-400" />
+                              {profile.skyblock.island.name}
+                            </DetailLink>
                             {profile.skyblock.island.owner && (
                               <Badge variant="secondary" className="text-[10px]">Owner</Badge>
                             )}
@@ -640,8 +622,14 @@ export function PlayerDetail() {
                       value={
                         profile.prison.gang ? (
                           <span className="flex items-center gap-1.5">
-                            <UsersIcon size={12} className="text-amber-400" />
-                            {profile.prison.gang.name}
+                            <DetailLink
+                              to={`/gangs/${profile.prison.gang.id}`}
+                              name={profile.prison.gang.name}
+                              className="gap-1.5"
+                            >
+                              <UsersIcon size={12} className="text-amber-400" />
+                              {profile.prison.gang.name}
+                            </DetailLink>
                             {profile.prison.gang.owner && (
                               <Badge variant="secondary" className="text-[10px]">Owner</Badge>
                             )}

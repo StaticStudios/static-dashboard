@@ -8,6 +8,10 @@ import {NAV_ITEMS, Sidebar} from "./components/Sidebar";
 import {DashboardTab} from "./tabs/DashboardTab";
 import {PlayersTab} from "./tabs/PlayersTab";
 import {PlayerDetail} from "./tabs/players/PlayerDetail";
+import {IslandsTab} from "./tabs/IslandsTab";
+import {IslandDetail} from "./tabs/islands/IslandDetail";
+import {GangsTab} from "./tabs/GangsTab";
+import {GangDetail} from "./tabs/gangs/GangDetail";
 import {PunishmentsTab} from "./tabs/PunishmentsTab";
 import {ChatTab} from "./tabs/ChatTab";
 import {MotdTab} from "./tabs/MotdTab";
@@ -26,7 +30,7 @@ export default function App() {
   // Both of these are dense enough that the default container crowds them.
   const isPlayerDetail = pathname.startsWith("/players/");
   // The transcript view, like a player profile, needs the wider column; the list does not.
-  const isWide = isPlayerDetail || pathname.startsWith("/statistics") || pathname.startsWith("/tickets/");
+  const isWide = isPlayerDetail || pathname.startsWith("/islands/") || pathname.startsWith("/gangs/") || pathname.startsWith("/statistics") || pathname.startsWith("/tickets/");
 
   return (
     <div
@@ -100,6 +104,10 @@ export default function App() {
               <Route path="/dashboard" element={<DashboardTab />} />
               <Route path="/players" element={<PlayersTab />} />
               <Route path="/players/:playerId" element={<PlayerDetail />} />
+              <Route path="/islands" element={<IslandsTab />} />
+              <Route path="/islands/:islandId" element={<IslandDetail />} />
+              <Route path="/gangs" element={<GangsTab />} />
+              <Route path="/gangs/:gangId" element={<GangDetail />} />
               <Route path="/punishments" element={<PunishmentsTab />} />
               <Route path="/chat" element={<ChatTab />} />
               <Route path="/tickets" element={<TicketsTab />} />

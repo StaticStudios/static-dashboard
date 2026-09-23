@@ -1,6 +1,6 @@
 import type {ReactNode} from "react";
 import {useLocation, useNavigate} from "react-router";
-import {BarChart3, LayoutDashboard, Megaphone, MessageSquare, Shield, Ticket, Users, X} from "lucide-react";
+import {BarChart3, Home, LayoutDashboard, Megaphone, MessageSquare, Shield, Swords, Ticket, Users, X} from "lucide-react";
 import logoSrc from "../../public/logo.png";
 import {cn, formatRank, initials, rankAtLeast, skinFaceUrl, type StaffPosition} from "../../lib/utils";
 import {Separator} from "./ui/separator";
@@ -10,8 +10,18 @@ import {useChatMessageCount} from "../hooks/useChatMessageCount";
 import {useMe} from "../hooks/useMe";
 import type {TabKey} from "../types";
 
-/** `minRank` hides an entry from staff below that tier; the API enforces the same limit. */
-export const NAV_ITEMS: { key: TabKey; path: string; label: string; icon: ReactNode; minRank?: StaffPosition }[] = [
+/**
+ * `minRank` hides an entry from staff below that tier; the API enforces the same limit.
+ * `group` puts an entry under its own heading; entries without one sit under "Menu".
+ */
+export const NAV_ITEMS: {
+  key: TabKey;
+  path: string;
+  label: string;
+  icon: ReactNode;
+  minRank?: StaffPosition;
+  group?: string;
+}[] = [
   { key: "dashboard",   path: "/dashboard",   label: "Dashboard",    icon: <LayoutDashboard size={15} /> },
   { key: "players",     path: "/players",     label: "Players",      icon: <Users size={15} />           },
   { key: "punishments", path: "/punishments", label: "Punishments",  icon: <Shield size={15} />          },
@@ -19,7 +29,11 @@ export const NAV_ITEMS: { key: TabKey; path: string; label: string; icon: ReactN
   { key: "tickets",     path: "/tickets",     label: "Tickets",      icon: <Ticket size={15} />,         minRank: "ADMIN" },
   { key: "statistics",  path: "/statistics",  label: "Statistics",   icon: <BarChart3 size={15} />,      minRank: "ADMIN" },
   { key: "motd",        path: "/motd",        label: "MOTD Editor",  icon: <Megaphone size={15} />,      minRank: "DEVELOPER" },
+  { key: "islands",     path: "/islands",     label: "Islands",      icon: <Home size={15} />,           group: "Skyblock" },
+  { key: "gangs",       path: "/gangs",       label: "Gangs",        icon: <Swords size={15} />,         group: "Prison" },
 ];
+
+const DEFAULT_GROUP = "Menu";
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
   const navigate = useNavigate();
@@ -37,10 +51,17 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     tickets:     null,
     motd:        null,
     statistics:  null,
+    islands:     null,
+    gangs:       null,
   };
 
   // Filtered here rather than in NAV_ITEMS, which App.tsx also reads for the breadcrumb label.
   const visibleItems = NAV_ITEMS.filter(({ minRank }) => !minRank || rankAtLeast(me?.rank, minRank));
+  // Headings appear in the order their first entry does in NAV_ITEMS; a group with no visible entry is dropped.
+  const groups = [...new Set(visibleItems.map(({ group }) => group ?? DEFAULT_GROUP))].map((name) => ({
+    name,
+    items: visibleItems.filter(({ group }) => (group ?? DEFAULT_GROUP) === name),
+  }));
 
   return (
     <aside className="flex flex-col h-full w-60 bg-sidebar border-r border-sidebar-border shrink-0">
@@ -63,41 +84,45 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        <p className="text-[9px] font-mono font-semibold text-muted-foreground/50 uppercase tracking-widest px-2.5 mb-2">
-          Menu
-        </p>
-        {visibleItems.map(({ key, path, label, icon }) => {
-          const isActive = pathname === path || pathname.startsWith(`${path}/`);
-          const count = activeCounts[key];
-          return (
-            <button
-              key={key}
-              onClick={() => { navigate(path); onClose?.(); }}
-              className={cn(
-                "w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-all duration-150 group",
-                isActive
-                  ? "bg-primary/10 text-primary"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              )}
-            >
-              <div className="flex items-center gap-2.5">
-                <span className={cn("transition-colors", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")}>
-                  {icon}
-                </span>
-                <span className="text-[13px] font-medium font-display">{label}</span>
-              </div>
-              {count !== null && (
-                <span className={cn(
-                  "text-[10px] font-mono px-1.5 py-0.5 rounded-md min-w-[22px] text-center",
-                  isActive ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
-                )}>
-                  {count}
-                </span>
-              )}
-            </button>
-          );
-        })}
+      <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
+        {groups.map(({ name, items }) => (
+          <div key={name} className="space-y-0.5">
+            <p className="text-[9px] font-mono font-semibold text-muted-foreground/50 uppercase tracking-widest px-2.5 mb-2">
+              {name}
+            </p>
+            {items.map(({ key, path, label, icon }) => {
+              const isActive = pathname === path || pathname.startsWith(`${path}/`);
+              const count = activeCounts[key];
+              return (
+                <button
+                  key={key}
+                  onClick={() => { navigate(path); onClose?.(); }}
+                  className={cn(
+                    "w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-all duration-150 group",
+                    isActive
+                      ? "bg-primary/10 text-primary"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  )}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className={cn("transition-colors", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")}>
+                      {icon}
+                    </span>
+                    <span className="text-[13px] font-medium font-display">{label}</span>
+                  </div>
+                  {count !== null && (
+                    <span className={cn(
+                      "text-[10px] font-mono px-1.5 py-0.5 rounded-md min-w-[22px] text-center",
+                      isActive ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                    )}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       <Separator />
