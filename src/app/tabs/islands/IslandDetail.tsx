@@ -71,14 +71,14 @@ export function IslandDetail() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] gap-6 items-start">
           <div className="space-y-6">
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            {/* Value and Bank get extra width so large numbers aren't truncated; Level is always short. */}
+            <div className="grid grid-cols-2 lg:grid-cols-[1.3fr_0.7fr_1.3fr_1.7fr] gap-3">
               <StatCard icon={<Gem size={16} />} label="Island Value" value={profile ? num(profile.value) : "…"} />
               <StatCard icon={<TrendingUp size={16} />} label="Level" value={profile ? profile.level : "…"} />
               <StatCard icon={<Landmark size={16} />} label="Bank" value={profile ? num(profile.bankBalance) : "…"} />
               <StatCard
                 icon={<Calendar size={16} />}
                 label="Created"
-                className="lg:col-span-2"
                 value={profile ? <Timestamp value={profile.createdAt} className="text-foreground" /> : "…"}
               />
             </div>
