@@ -1,5 +1,5 @@
 import {useLocation, useNavigate, useParams} from "react-router";
-import {ArrowLeft, Coins, Landmark, Pickaxe, Swords, TrendingUp, Trophy, Users as UsersIcon} from "lucide-react";
+import {ArrowLeft, Calendar, Coins, Landmark, Pickaxe, Swords, TrendingUp, Trophy} from "lucide-react";
 import {Card, CardContent, CardHeader, CardTitle} from "../../components/ui/card";
 import {Button} from "../../components/ui/button";
 import {PlayerLink} from "../../components/PlayerLink";
@@ -44,12 +44,18 @@ export function GangDetail() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] gap-6 items-start">
           <div className="space-y-6">
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            {/* Money-style tiles get extra width so large numbers aren't truncated; Level is always short. */}
+            <div className="grid grid-cols-2 lg:grid-cols-[1.2fr_0.6fr_1.2fr_1.2fr_1.6fr] gap-3">
               <StatCard icon={<Trophy size={16} />} label="Gang Points" value={profile ? num(profile.points) : "…"} />
               <StatCard icon={<TrendingUp size={16} />} label="Level" value={profile ? profile.level : "…"} />
               <StatCard icon={<Landmark size={16} />} label="Bank Money" value={profile ? num(profile.bankMoneyBalance) : "…"} />
               <StatCard icon={<Coins size={16} />} label="Bank Tokens" value={profile ? num(profile.bankTokensBalance) : "…"} />
-              <StatCard icon={<UsersIcon size={16} />} label="Members" value={profile ? profile.members.length : "…"} />
+              <StatCard
+                icon={<Calendar size={16} />}
+                label="Created"
+                className="col-span-2 lg:col-span-1"
+                value={profile ? <Timestamp value={profile.createdAt} className="text-foreground" /> : "…"}
+              />
             </div>
 
             {loading && !profile ? (
