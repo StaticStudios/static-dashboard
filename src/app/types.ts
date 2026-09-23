@@ -1,1 +1,1 @@
-export type TabKey = "dashboard" | "players" | "punishments" | "chat" | "tickets" | "motd" | "statistics";
+export type TabKey = "dashboard" | "players" | "punishments" | "chat" | "tickets" | "motd" | "statistics" | "islands" | "gangs";

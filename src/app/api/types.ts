@@ -207,6 +207,98 @@ export interface PlayerProfile {
   discord: { snowflake: string; username: string; boosting: boolean } | null;
 }
 
+/** A row in the island search. Owner fields are null if the owner has no player record. */
+export interface IslandSummary {
+  id: string;
+  name: string;
+  ownerId: string | null;
+  ownerName: string | null;
+  ownerSkinTextureValue: string | null;
+  value: number;
+  level: number;
+  memberCount: number;
+  createdAt: string | null;
+}
+
+/** A member of a player group (Skyblock island, Prison gang). The owner is flagged, not separate. */
+export interface GroupMember {
+  id: string;
+  name: string | null;
+  skinTextureValue: string | null;
+  owner: boolean;
+  online: boolean;
+  lastSeen: string | null;
+}
+
+/** An on/off group setting, keyed by its game-side name. */
+export interface GroupFlag {
+  key: string;
+  enabled: boolean;
+}
+
+export interface GroupWarp {
+  name: string;
+  x: number;
+  y: number;
+  z: number;
+  isPublic: boolean;
+  primary: boolean;
+}
+
+/**
+ * A Skyblock island. `members` includes the owner. Upgrade amounts are increments over the game's
+ * config defaults (except `mining_level`), keyed by their `island_upgrades` column. `flags` always
+ * lists every known flag, with the game's default where the island never changed it.
+ */
+export interface IslandProfile {
+  id: string;
+  name: string;
+  type: string | null;
+  variant: string | null;
+  value: number;
+  level: number;
+  bankBalance: number;
+  createdAt: string | null;
+  owner: GroupMember | null;
+  members: GroupMember[];
+  upgrades: { key: string; amount: number }[];
+  flags: GroupFlag[];
+  warps: GroupWarp[];
+}
+
+/** A row in the prison gang search. Owner fields are null if the owner has no player record. */
+export interface GangSummary {
+  id: string;
+  name: string;
+  ownerId: string | null;
+  ownerName: string | null;
+  ownerSkinTextureValue: string | null;
+  points: number;
+  level: number;
+  memberCount: number;
+  createdAt: string | null;
+}
+
+/** `contributedBlocks` is what the member has put towards the gang's level-up tasks. */
+export interface GangMember extends GroupMember {
+  contributedBlocks: number;
+}
+
+/** A prison gang. `members` includes the owner; `warps` are its cell warps. */
+export interface GangProfile {
+  id: string;
+  name: string;
+  points: number;
+  level: number;
+  bankMoneyBalance: number;
+  bankTokensBalance: number;
+  createdAt: string | null;
+  owner: GangMember | null;
+  members: GangMember[];
+  flags: GroupFlag[];
+  warps: GroupWarp[];
+}
+
 export interface MeResponse {
   discordUsername: string;
   /** Staff rank tier, e.g. "ADMIN" — see StaffPosition on the API. Taken from the tier the request
