@@ -27,9 +27,9 @@ export const NAV_ITEMS: {
   { key: "punishments", path: "/punishments", label: "Punishments",  icon: <Shield size={15} />          },
   { key: "chat",        path: "/chat",        label: "In-Game Chat", icon: <MessageSquare size={15} />   },
   { key: "tickets",     path: "/tickets",     label: "Tickets",      icon: <Ticket size={15} />,         minRank: "ADMIN" },
-  { key: "statistics",  path: "/statistics",  label: "Statistics",   icon: <BarChart3 size={15} />,      minRank: "ADMIN" },
   { key: "motd",        path: "/motd",        label: "MOTD Editor",  icon: <Megaphone size={15} />,      minRank: "DEVELOPER" },
-  { key: "servers",     path: "/server-metrics", label: "Server Metrics", icon: <Gauge size={15} />,      minRank: "DEVELOPER" },
+  { key: "statistics",  path: "/statistics",  label: "Statistics",   icon: <BarChart3 size={15} />,      minRank: "ADMIN",     group: "Analytics" },
+  { key: "servers",     path: "/server-metrics", label: "Server Metrics", icon: <Gauge size={15} />,      minRank: "DEVELOPER", group: "Analytics" },
   { key: "islands",     path: "/islands",     label: "Islands",      icon: <Home size={15} />,           group: "Skyblock" },
   { key: "gangs",       path: "/gangs",       label: "Gangs",        icon: <Swords size={15} />,         group: "Prison" },
 ];
