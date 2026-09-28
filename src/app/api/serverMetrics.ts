@@ -1,5 +1,5 @@
 import {apiDownload, apiFetch, apiSend} from "./client";
-import type {ProfileCaptureResponse, ServerMetricsResponse, SparkReportSummary, SparkViewerLink} from "./types";
+import type {ProfilerActionResponse, ServerMetricsResponse, SparkReportSummary, SparkViewerLink} from "./types";
 
 /** Windows the API accepts, in minutes. */
 export const METRIC_WINDOWS = [5, 15, 30, 60] as const;
@@ -28,7 +28,23 @@ export function downloadSparkReport(report: Pick<SparkReportSummary, "code" | "s
   );
 }
 
-/** Starts a 60s spark profiler on one live backend. Rejects with 404 (not live) or 502 (no answer). */
-export function captureProfile(serverId: string) {
-  return apiSend<ProfileCaptureResponse>(`/api/v1/internal/server-metrics/servers/${encodeURIComponent(serverId)}/profile`, "POST");
+const profilerPath = (serverId: string, action: string) =>
+  `/api/v1/internal/server-metrics/servers/${encodeURIComponent(serverId)}/profiler/${action}`;
+
+/**
+ * A live viewer link for the profiler running on one backend. spark drops it if no browser connects
+ * within about 30s, so open it right away. Rejects with 404 (not live) or 502 (no answer), as do the others.
+ */
+export function openLiveProfiler(serverId: string) {
+  return apiSend<ProfilerActionResponse>(profilerPath(serverId, "live"), "POST");
+}
+
+/** Uploads the profiler running on one backend; the report then appears in the reports list. */
+export function saveRunningProfiler(serverId: string) {
+  return apiSend<ProfilerActionResponse>(profilerPath(serverId, "save"), "POST");
+}
+
+/** Trusts the spark viewer showing `clientId`, so that backend streams live data to it. */
+export function trustProfilerViewer(serverId: string, clientId: string) {
+  return apiSend<ProfilerActionResponse>(profilerPath(serverId, "trust"), "POST", { clientId });
 }

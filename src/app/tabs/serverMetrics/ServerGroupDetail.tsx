@@ -29,7 +29,7 @@ import {
   TPS_CRITICAL,
   TPS_DEGRADED,
 } from "./parts";
-import {CaptureProfileButton, SparkReportsView} from "./SparkReports";
+import {ProfilerControls, SparkReportsView} from "./SparkReports";
 import {useSparkReports} from "../../hooks/useSparkReports";
 import type {SparkReportSummary} from "../../api/types";
 
@@ -180,8 +180,8 @@ function ServerCard({
           <p className="text-sm font-bold font-mono text-foreground truncate">{server.serverId}</p>
           <p className="text-[10px] font-mono text-muted-foreground truncate">session {server.sessionId}</p>
         </div>
-        <div className="flex items-start gap-2">
-          <CaptureProfileButton serverId={server.serverId} reports={reports} />
+        <div className="flex items-center gap-2">
+          <ProfilerControls serverId={server.serverId} reports={reports} />
           <HealthBadge health={serverHealth(server, now)} />
         </div>
       </div>

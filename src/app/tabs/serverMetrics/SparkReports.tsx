@@ -1,11 +1,20 @@
-import {useEffect, useState} from "react";
-import {Download, ExternalLink, FileSearch, Flame, Loader2} from "lucide-react";
+import {type FormEvent, useEffect, useState} from "react";
+import {toast} from "sonner";
+import {Download, ExternalLink, FileSearch, Flame, Loader2, Radio, Save, ShieldCheck} from "lucide-react";
 import {cn} from "../../../lib/utils";
 import {gamemodeStyle, tint} from "../../../lib/gamemodes";
 import {Card} from "../../components/ui/card";
 import {Button} from "../../components/ui/button";
+import {Input} from "../../components/ui/input";
+import {Popover, PopoverAnchor, PopoverContent, PopoverTrigger} from "../../components/ui/popover";
 import {Timestamp} from "../../components/Timestamp";
-import {captureProfile, downloadSparkReport, openSparkReport} from "../../api/serverMetrics";
+import {
+  downloadSparkReport,
+  openLiveProfiler,
+  openSparkReport,
+  saveRunningProfiler,
+  trustProfilerViewer,
+} from "../../api/serverMetrics";
 import {useSparkReports} from "../../hooks/useSparkReports";
 import type {SparkReportSummary} from "../../api/types";
 import {formatBytes, formatNumber, MSPT_CRITICAL, MSPT_DEGRADED, thresholdClass, TPS_CRITICAL, TPS_DEGRADED} from "./parts";
@@ -85,7 +94,7 @@ export function SparkReportsView({
         <p className="text-[10px] font-mono text-muted-foreground">
           {actionError ? <span className="text-red-400">{actionError}</span>
             : error ? <span className="text-amber-400">Refresh failed</span>
-            : "Captured automatically when a server lags, or on request"}
+            : "Captured automatically when a server lags, or saved from a server card"}
         </p>
       </div>
 
@@ -124,7 +133,7 @@ export function SparkReportsView({
                     </td>
                     <td className="px-2 py-2 text-foreground whitespace-nowrap">
                       {r.trigger}
-                      <span className="text-muted-foreground"> · {r.durationSeconds}s</span>
+                      {r.durationSeconds > 0 && <span className="text-muted-foreground"> · {r.durationSeconds}s</span>}
                     </td>
                     <td className={cn("px-2 py-2 text-right hidden md:table-cell", thresholdClass(r.tpsAtTrigger, TPS_DEGRADED, TPS_CRITICAL, true))}>
                       {formatNumber(r.tpsAtTrigger, 2)}
@@ -163,64 +172,179 @@ export function SparkReportsView({
   );
 }
 
-const CAPTURE_MESSAGES: Record<string, { ok: boolean; message: string }> = {
-  STARTED: { ok: true, message: "Profiling for 60s; the report appears below shortly after." },
-  BUSY: { ok: false, message: "A profiler is already running on this server." },
-  UNKNOWN: { ok: true, message: "Sent, but spark did not confirm; a report may still arrive." },
+type Notice = { kind: "success" | "info" | "error"; message: string };
+
+const LIVE_NOTICES: Record<string, Notice> = {
+  OPENED: { kind: "success", message: "Live viewer opened in a new tab." },
+  NOT_RUNNING: { kind: "error", message: "No profiler is running on this server." },
+  FAILED: { kind: "error", message: "spark could not open the live viewer." },
+  UNKNOWN: { kind: "error", message: "spark did not answer." },
 };
 
+const SAVE_NOTICES: Record<string, Notice> = {
+  NOT_RUNNING: { kind: "error", message: "No profiler is running on this server." },
+  UNKNOWN: { kind: "info", message: "spark did not confirm the upload; a report may still arrive." },
+};
+
+const TRUST_NOTICES: Record<string, Notice> = {
+  TRUSTED: { kind: "success", message: "Viewer trusted. The spark tab should connect now." },
+  NOT_FOUND: { kind: "error", message: "No viewer with that ID is waiting on this server. Open the live view first." },
+  INVALID: { kind: "error", message: "That does not look like a spark viewer ID." },
+  UNKNOWN: { kind: "error", message: "spark did not answer." },
+};
+
+/** How long "Save report" keeps waiting for its report before giving up on showing it. */
+const SAVE_WAIT_MS = 180_000;
+
+/** Reports outcomes as toasts, so the card never changes size. */
+function notify(serverId: string, notice: Notice) {
+  toast[notice.kind](notice.message, { description: serverId });
+}
+
+function failure(serverId: string, e: unknown) {
+  notify(serverId, {
+    kind: "error",
+    message: statusOf(e) === 404 ? "This server is no longer online." : "The server did not respond.",
+  });
+}
+
 /**
- * Starts a 60s spark profiler on one backend, reporting the outcome inline. The "started" message stays
- * until a manual report for this server appears in `reports`, then clears.
+ * spark controls for one backend, acting on the profiler already running there (spark always runs one in
+ * the background): "Live view" opens spark's live viewer on it, "Save report" uploads it into the reports
+ * list and stays in progress until that report appears in `reports`. The shield opens a popover to trust a
+ * viewer, which spark asks for once per browser and server; it opens by itself after a live view.
+ * Outcomes are toasts and the trust field floats, so nothing here changes the card's layout.
  */
-export function CaptureProfileButton({ serverId, reports }: { serverId: string; reports: SparkReportSummary[] | null }) {
-  const [sending, setSending] = useState(false);
-  const [status, setStatus] = useState<{ ok: boolean; message: string } | null>(null);
-  // Earliest trigger time a report may have to count as the one we asked for; null when not waiting.
+export function ProfilerControls({ serverId, reports }: { serverId: string; reports: SparkReportSummary[] | null }) {
+  const [busy, setBusy] = useState<"live" | "save" | "trust" | null>(null);
+  const [trustOpen, setTrustOpen] = useState(false);
+  const [clientId, setClientId] = useState("");
+  // Earliest trigger time a report may have to count as the saved one; null when not waiting.
   // Backdated a little because triggeredAt comes from the backend's clock, not the browser's.
   const [awaitingSince, setAwaitingSince] = useState<number | null>(null);
 
   useEffect(() => {
     if (awaitingSince === null || !reports) return;
     const arrived = reports.some(
-      (r) => r.serverId === serverId && r.trigger.startsWith("Manual") && new Date(r.triggeredAt).getTime() >= awaitingSince
+      (r) => r.serverId === serverId && r.trigger.startsWith("Saved") && new Date(r.triggeredAt).getTime() >= awaitingSince
     );
     if (arrived) {
-      setStatus(null);
       setAwaitingSince(null);
+      notify(serverId, { kind: "success", message: "Report saved. It is in the reports list below." });
     }
   }, [reports, awaitingSince, serverId]);
 
-  async function capture() {
-    setSending(true);
-    setStatus(null);
-    setAwaitingSince(null);
-    const requestedAt = Date.now() - 30_000;
+  useEffect(() => {
+    if (awaitingSince === null) return;
+    const id = setTimeout(() => {
+      setAwaitingSince(null);
+      notify(serverId, { kind: "info", message: "The report has not shown up yet; it will appear in the list once stored." });
+    }, SAVE_WAIT_MS);
+    return () => clearTimeout(id);
+  }, [awaitingSince, serverId]);
+
+  async function live() {
+    // Opened synchronously with the click so the popup is not blocked; spark drops the link within ~30s.
+    const tab = window.open("about:blank", "_blank");
+    setBusy("live");
     try {
-      const { result } = await captureProfile(serverId);
-      setStatus(CAPTURE_MESSAGES[result] ?? CAPTURE_MESSAGES.UNKNOWN);
-      if (result !== "BUSY") setAwaitingSince(requestedAt);
+      const { result, url } = await openLiveProfiler(serverId);
+      if (result === "OPENED" && url && tab) {
+        tab.opener = null;
+        tab.location.href = url;
+        setTrustOpen(true);
+      } else {
+        tab?.close();
+      }
+      notify(serverId, LIVE_NOTICES[result] ?? LIVE_NOTICES.UNKNOWN);
     } catch (e) {
-      setStatus({
-        ok: false,
-        message: statusOf(e) === 404 ? "This server is no longer online." : "The server did not respond.",
-      });
+      tab?.close();
+      failure(serverId, e);
     } finally {
-      setSending(false);
+      setBusy(null);
     }
   }
 
+  async function save() {
+    setBusy("save");
+    const requestedAt = Date.now() - 30_000;
+    try {
+      const { result } = await saveRunningProfiler(serverId);
+      if (result === "NOT_RUNNING") {
+        notify(serverId, SAVE_NOTICES.NOT_RUNNING);
+      } else {
+        if (result !== "STARTED") notify(serverId, SAVE_NOTICES.UNKNOWN);
+        setAwaitingSince(requestedAt);
+      }
+    } catch (e) {
+      failure(serverId, e);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function trust(event: FormEvent) {
+    event.preventDefault();
+    const id = clientId.trim();
+    if (!id) return;
+    setBusy("trust");
+    try {
+      const { result } = await trustProfilerViewer(serverId, id);
+      notify(serverId, TRUST_NOTICES[result] ?? TRUST_NOTICES.UNKNOWN);
+      if (result === "TRUSTED") {
+        setTrustOpen(false);
+        setClientId("");
+      }
+    } catch (e) {
+      failure(serverId, e);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const saving = busy === "save" || awaitingSince !== null;
+
   return (
-    <div className="flex flex-col items-end gap-1">
-      <Button variant="outline" size="xs" onClick={capture} disabled={sending}>
-        {sending ? <Loader2 className="animate-spin" /> : <Flame />}
-        Capture profile
-      </Button>
-      {status && (
-        <p className={cn("text-[10px] font-mono max-w-[220px] text-right", status.ok ? "text-muted-foreground" : "text-amber-400")}>
-          {status.message}
-        </p>
-      )}
-    </div>
+    <Popover open={trustOpen} onOpenChange={setTrustOpen}>
+      <PopoverAnchor asChild>
+        <div className="flex items-center gap-1.5">
+          <Button variant="outline" size="xs" onClick={live} disabled={busy !== null}>
+            {busy === "live" ? <Loader2 className="animate-spin" /> : <Radio />}
+            Live view
+          </Button>
+          <Button variant="outline" size="xs" onClick={save} disabled={busy !== null || saving}>
+            {saving ? <Loader2 className="animate-spin" /> : <Save />}
+            {saving ? "Uploading…" : "Save report"}
+          </Button>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="xs" title="Trust a spark viewer" aria-label="Trust a spark viewer">
+              <ShieldCheck />
+            </Button>
+          </PopoverTrigger>
+        </div>
+      </PopoverAnchor>
+      <PopoverContent align="end" className="w-72 p-3">
+        <form onSubmit={trust} className="space-y-2">
+          <p className="text-[11px] font-mono text-muted-foreground leading-snug">
+            If the spark tab says the viewer is not trusted, paste the ID it shows. Needed once per browser for
+            this server.
+          </p>
+          <div className="flex items-center gap-1.5">
+            <Input
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+              placeholder="Viewer ID"
+              aria-label="spark viewer ID"
+              className="h-6 flex-1 px-2 text-[10px] font-mono"
+              autoFocus
+            />
+            <Button type="submit" variant="outline" size="xs" disabled={busy !== null || !clientId.trim()}>
+              {busy === "trust" ? <Loader2 className="animate-spin" /> : <ShieldCheck />}
+              Trust
+            </Button>
+          </div>
+        </form>
+      </PopoverContent>
+    </Popover>
   );
 }

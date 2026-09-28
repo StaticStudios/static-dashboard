@@ -4,6 +4,7 @@ import {Menu} from "lucide-react";
 import {cn} from "../lib/utils";
 import {Button} from "./components/ui/button";
 import {Separator} from "./components/ui/separator";
+import {Toaster} from "./components/ui/sonner";
 import {NAV_ITEMS, Sidebar} from "./components/Sidebar";
 import {DashboardTab} from "./tabs/DashboardTab";
 import {PlayersTab} from "./tabs/PlayersTab";
@@ -123,6 +124,8 @@ export default function App() {
           </div>
         </main>
       </div>
+      {/* The dashboard only has a dark theme, and there is no next-themes provider to read it from. */}
+      <Toaster theme="dark" position="bottom-right" />
     </div>
   );
 }

@@ -512,9 +512,10 @@ export interface SparkReportSummary {
   viewerUrl: string;
   serverId: string;
   serverGroup: string;
-  /** e.g. "MSPT p95 72.4ms", "TPS 16.80" or "Manual by <user>". */
+  /** e.g. "MSPT p95 72.4ms", "TPS 16.80" or "Saved by <user>". */
   trigger: string;
   triggeredAt: string;
+  /** The timed run's length; 0 for a saved upload of the running profiler. */
   durationSeconds: number;
   tpsAtTrigger: number | null;
   msptP95AtTrigger: number | null;
@@ -529,6 +530,12 @@ export interface SparkViewerLink {
   reuploaded: boolean;
 }
 
-export interface ProfileCaptureResponse {
-  result: "STARTED" | "BUSY" | "UNKNOWN";
+/**
+ * A backend's answer to a spark action. `result` per action — live: OPENED, NOT_RUNNING, FAILED; save:
+ * STARTED, NOT_RUNNING; trust: TRUSTED, NOT_FOUND, INVALID; any: UNKNOWN when spark did not answer in time.
+ */
+export interface ProfilerActionResponse {
+  result: string;
+  /** The live viewer link, for an OPENED live action. */
+  url: string | null;
 }
