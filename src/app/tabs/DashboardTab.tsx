@@ -1,6 +1,7 @@
 import {Activity, Ban, Clock, Server, Shield, Sword, TrendingUp, Users, VolumeX, Zap} from "lucide-react";
 import {Area, AreaChart, CartesianGrid, XAxis, YAxis} from "recharts";
 import {cn, initials} from "../../lib/utils";
+import {GAMEMODES} from "../../lib/gamemodes";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "../components/ui/card";
 import {Badge} from "../components/ui/badge";
 import {Separator} from "../components/ui/separator";
@@ -25,8 +26,8 @@ import {usePlayerCountHistory} from "../hooks/usePlayerCountHistory";
 
 const chartConfig = {
   network: { label: "Network", color: "var(--chart-1)" },
-  skyblock: { label: "Skyblock", color: "var(--chart-2)" },
-  prison: { label: "Prison", color: "var(--chart-3)" },
+  skyblock: GAMEMODES.skyblock,
+  prison: GAMEMODES.prison,
 } satisfies ChartConfig;
 
 export function DashboardTab() {

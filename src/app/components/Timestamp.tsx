@@ -23,6 +23,23 @@ const FULL = new Intl.DateTimeFormat(undefined, {
   timeStyle: "long",
 });
 
+const CLOCK = new Intl.DateTimeFormat(undefined, {
+  hour: "numeric",
+  minute: "2-digit",
+  second: "2-digit",
+});
+
+/**
+ * Time of day only, for spots where the date is implied and space is tight, such as chart axes over
+ * the last few minutes. Everywhere else, use `formatTimestamp` or `<Timestamp>`.
+ */
+export function formatClockTime(value: string | number | Date | null | undefined): string | null {
+  if (value === null || value === undefined || value === "") return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return CLOCK.format(date);
+}
+
 /** Formats an instant the same way everywhere; returns null when the value is absent or unparseable. */
 export function formatTimestamp(value: string | number | Date | null | undefined): string | null {
   if (value === null || value === undefined || value === "") return null;
