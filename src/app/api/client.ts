@@ -88,3 +88,26 @@ export async function apiSend<T>(path: string, method: "POST" | "PUT" | "PATCH" 
   }
   return res.json() as Promise<T>;
 }
+
+/**
+ * Downloads a binary response as a file. Goes through fetch rather than a plain link because the API
+ * needs the bearer token; same auth and error handling as {@link apiFetch}.
+ */
+export async function apiDownload(path: string, fileName: string): Promise<void> {
+  const url = new URL(path, BASE_URL);
+  const token = tokenGetter ? await tokenGetter() : null;
+  const res = await fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
+  if (res.status === 401) {
+    unauthorizedHandler?.();
+    throw new Error(`API request to ${path} failed: 401 Unauthorized`);
+  }
+  if (!res.ok) {
+    throw new Error(`API request to ${path} failed: ${res.status} ${res.statusText}`);
+  }
+  const objectUrl = URL.createObjectURL(await res.blob());
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(objectUrl);
+}

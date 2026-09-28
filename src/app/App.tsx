@@ -4,6 +4,7 @@ import {Menu} from "lucide-react";
 import {cn} from "../lib/utils";
 import {Button} from "./components/ui/button";
 import {Separator} from "./components/ui/separator";
+import {Toaster} from "./components/ui/sonner";
 import {NAV_ITEMS, Sidebar} from "./components/Sidebar";
 import {DashboardTab} from "./tabs/DashboardTab";
 import {PlayersTab} from "./tabs/PlayersTab";
@@ -18,6 +19,8 @@ import {MotdTab} from "./tabs/MotdTab";
 import {StatisticsTab} from "./tabs/StatisticsTab";
 import {TicketsTab} from "./tabs/TicketsTab";
 import {TicketDetail} from "./tabs/tickets/TicketDetail";
+import {ServerMetricsTab} from "./tabs/ServerMetricsTab";
+import {ServerGroupDetail} from "./tabs/serverMetrics/ServerGroupDetail";
 import {usePlayerCounts} from "./hooks/usePlayerCounts";
 
 export default function App() {
@@ -30,7 +33,7 @@ export default function App() {
   // Both of these are dense enough that the default container crowds them.
   const isPlayerDetail = pathname.startsWith("/players/");
   // The transcript view, like a player profile, needs the wider column; the list does not.
-  const isWide = isPlayerDetail || pathname.startsWith("/islands/") || pathname.startsWith("/gangs/") || pathname.startsWith("/statistics") || pathname.startsWith("/tickets/");
+  const isWide = isPlayerDetail || pathname.startsWith("/islands/") || pathname.startsWith("/gangs/") || pathname.startsWith("/statistics") || pathname.startsWith("/server-metrics") || pathname.startsWith("/tickets/");
 
   return (
     <div
@@ -114,11 +117,15 @@ export default function App() {
               <Route path="/tickets/:channelSnowflake" element={<TicketDetail />} />
               <Route path="/statistics" element={<StatisticsTab />} />
               <Route path="/motd" element={<MotdTab />} />
+              <Route path="/server-metrics" element={<ServerMetricsTab />} />
+              <Route path="/server-metrics/:group" element={<ServerGroupDetail />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </div>
         </main>
       </div>
+      {/* The dashboard only has a dark theme, and there is no next-themes provider to read it from. */}
+      <Toaster theme="dark" position="bottom-right" />
     </div>
   );
 }

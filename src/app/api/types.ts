@@ -435,3 +435,107 @@ export interface TicketTranscriptDetail {
   events: TicketEvent[];
   messages: TicketMessage[];
 }
+
+/** One chartable point of a backend's health history. */
+export interface BackendHealthPoint {
+  timestamp: string;
+  tps: number;
+  /** Mean tick time in ms: spark's 10s mean when available, otherwise Paper's rolling average. */
+  mspt: number;
+  msptP95: number | null;
+  /** This JVM's CPU usage over the last 10s, 0–1. Null until spark has enabled. */
+  cpuProcess: number | null;
+  connectedPlayers: number;
+  heapUsedBytes: number;
+  gcPauseMillis: number;
+}
+
+/** A backend's newest full health sample. See the skyblock repo's docs/backend-health-metrics.md. */
+export interface BackendHealthSample {
+  timestamp: string;
+  loadedWorlds: number;
+  connectedPlayers: number;
+  loadedChunks: number;
+  entities: number;
+  heapMaxBytes: number;
+  heapCommittedBytes: number;
+  heapUsedBytes: number;
+  heapSampleAfterGc: boolean;
+  heapMeasuredAt: string;
+  tps1m: number;
+  tps5m: number;
+  tps15m: number;
+  mspt: number;
+  msptMean10s: number | null;
+  msptP95: number | null;
+  msptMax: number | null;
+  cpuProcess: number | null;
+  cpuSystem: number | null;
+  /** Stop-the-world GC time since the previous sample. */
+  gcPauseMillis: number;
+  gcCollections: number;
+}
+
+export interface BackendServerMetrics {
+  sessionId: string;
+  serverId: string;
+  /** When the backend finished starting; null for sessions older than the session-begin audit row. */
+  startedAt: string | null;
+  /** Null right after startup, before the first sample. */
+  latest: BackendHealthSample | null;
+  history: BackendHealthPoint[];
+}
+
+export interface ServerGroupMetrics {
+  group: string;
+  activeServers: number;
+  connectedPlayers: number;
+  loadedWorlds: number;
+  averageTps: number | null;
+  minTps: number | null;
+  averageMspt: number | null;
+  maxMspt: number | null;
+  servers: BackendServerMetrics[];
+}
+
+/** Groups arrive in display order: skyblock, prison, others, hub last. */
+export interface ServerMetricsResponse {
+  generatedAt: string;
+  minutes: number;
+  groups: ServerGroupMetrics[];
+}
+
+/** A spark profiler report captured by a backend. `status` is PENDING until the API has downloaded it. */
+export interface SparkReportSummary {
+  code: string;
+  /** Last known viewer link; may have expired, so open reports through `openSparkReport`. */
+  viewerUrl: string;
+  serverId: string;
+  serverGroup: string;
+  /** e.g. "MSPT p95 72.4ms", "TPS 16.80" or "Saved by <user>". */
+  trigger: string;
+  triggeredAt: string;
+  /** The timed run's length; 0 for a saved upload of the running profiler. */
+  durationSeconds: number;
+  tpsAtTrigger: number | null;
+  msptP95AtTrigger: number | null;
+  status: "PENDING" | "STORED" | "FAILED";
+  rawSize: number | null;
+  fetchError: string | null;
+}
+
+export interface SparkViewerLink {
+  url: string;
+  /** True when spark's copy had expired and the API uploaded the stored one again. */
+  reuploaded: boolean;
+}
+
+/**
+ * A backend's answer to a spark action. `result` per action — live: OPENED, NOT_RUNNING, FAILED; save:
+ * STARTED, NOT_RUNNING; trust: TRUSTED, NOT_FOUND, INVALID; any: UNKNOWN when spark did not answer in time.
+ */
+export interface ProfilerActionResponse {
+  result: string;
+  /** The live viewer link, for an OPENED live action. */
+  url: string | null;
+}
