@@ -229,12 +229,17 @@ function Statistics() {
             <Zap size={14} className="text-primary" />
             <CardTitle>Logins per day</CardTitle>
           </div>
-          <CardDescription>Counted on the proxy, which sees each login exactly once</CardDescription>
+          <CardDescription>
+            Counted on the proxy, which sees each login exactly once. New players are first ever joins.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <SingleSeries
-            points={sessions?.loginSeries ?? []}
-            label="Logins"
+          <MultiSeries
+            series={[
+              { key: "logins", label: "Logins", color: "var(--chart-1)", points: sessions?.loginSeries ?? [] },
+              { key: "unique", label: "Unique player logins", color: "var(--chart-4)", points: sessions?.uniquePlayerSeries ?? [] },
+              { key: "new", label: "New player logins", color: "var(--chart-5)", points: sessions?.newPlayerSeries ?? [] },
+            ]}
             loading={sessionsLoading}
           />
         </CardContent>
@@ -457,39 +462,73 @@ function RewardDistribution({ rewards, loading }: { rewards: CrateReward[]; load
   );
 }
 
-function SingleSeries({ points, label, loading }: { points: StatPoint[]; label: string; loading: boolean }) {
-  const data = points.map((point) => ({ date: shortDate(point.date), count: point.count }));
-  const config: ChartConfig = { count: { label, color: "var(--chart-1)" } };
+interface Series {
+  key: string;
+  label: string;
+  color: string;
+  points: StatPoint[];
+}
 
+/**
+ * Several daily counts overlaid, not stacked: each is a subset of the one before it (new players are
+ * unique players, which are logins), so stacking would double count.
+ */
+function MultiSeries({ series, loading }: { series: Series[]; loading: boolean }) {
   if (loading) {
     return <Skeleton className="h-[240px] w-full" />;
   }
+
+  // The API zero-fills every series over the same window, but join on the date rather than the index
+  // so a series that comes back empty or shorter can't shift the others.
+  const byDate = new Map<string, Record<string, string | number>>();
+  for (const s of series) {
+    for (const point of s.points) {
+      const row = byDate.get(point.date) ?? { date: point.date };
+      row[s.key] = point.count;
+      byDate.set(point.date, row);
+    }
+  }
+  const data = [...byDate.values()]
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+    .map((row) => ({ ...row, date: shortDate(String(row.date)) }));
+
   if (data.length === 0) {
     return <ChartEmpty />;
   }
+
+  const config: ChartConfig = Object.fromEntries(series.map((s) => [s.key, { label: s.label, color: s.color }]));
+  // Keys double as CSS variable names, so they can't be the human-readable labels the tooltip shows.
+  const labels = Object.fromEntries(series.map((s) => [s.key, s.label]));
+  const formatter = (value: unknown, name: string) => tooltipFormatter(value, labels[name] ?? name);
 
   return (
     <ChartContainer config={config} className="h-[240px] w-full">
       <AreaChart data={data} margin={{ left: 4, right: 12, top: 8 }}>
         <defs>
-          <linearGradient id="fillCount" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="var(--color-count)" stopOpacity={0.35} />
-            <stop offset="95%" stopColor="var(--color-count)" stopOpacity={0.02} />
-          </linearGradient>
+          {series.map((s) => (
+            <linearGradient key={s.key} id={`fill-series-${s.key}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={`var(--color-${s.key})`} stopOpacity={0.25} />
+              <stop offset="95%" stopColor={`var(--color-${s.key})`} stopOpacity={0.02} />
+            </linearGradient>
+          ))}
         </defs>
         <CartesianGrid vertical={false} />
         <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} minTickGap={32} />
         <YAxis width={44} tickLine={false} axisLine={false} allowDecimals={false} />
-        <ChartTooltip content={<ChartTooltipContent formatter={tooltipFormatter} />} />
-        <Area
-          dataKey="count"
-          type="monotone"
-          stroke="var(--color-count)"
-          fill="url(#fillCount)"
-          strokeWidth={2}
-          isAnimationActive={false}
-          dot={false}
-        />
+        <ChartTooltip content={<ChartTooltipContent formatter={formatter} />} />
+        {series.map((s) => (
+          <Area
+            key={s.key}
+            dataKey={s.key}
+            type="monotone"
+            stroke={`var(--color-${s.key})`}
+            fill={`url(#fill-series-${s.key})`}
+            strokeWidth={2}
+            isAnimationActive={false}
+            dot={false}
+          />
+        ))}
+        <ChartLegend content={<ChartLegendContent />} />
       </AreaChart>
     </ChartContainer>
   );

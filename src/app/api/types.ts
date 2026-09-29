@@ -124,6 +124,8 @@ export interface SessionStatistics {
   medianSeconds: number;
   loginSeries: StatPoint[];
   uniquePlayerSeries: StatPoint[];
+  /** Players whose first ever join fell on each day. */
+  newPlayerSeries: StatPoint[];
   lengthBuckets: StatCount[];
   byGamemode: StatCount[];
 }
