@@ -9,8 +9,9 @@ import type {
 } from "./types";
 
 /**
- * The Tebex store, proxied by static-api so the store secret never reaches the browser. Every
- * endpoint here is gated to DEVELOPER and above on the API side.
+ * The Tebex store, proxied by static-api so the store secret never reaches the browser. On the API
+ * side every endpoint here is MANAGER and above, except a player's purchase list, which is ADMIN and
+ * above with each amount removed below MANAGER.
  */
 
 export function fetchStoreInfo() {

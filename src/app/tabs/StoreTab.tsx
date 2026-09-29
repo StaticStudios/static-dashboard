@@ -15,6 +15,9 @@ import {type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent} fro
 import {PlayerAvatar} from "../components/PlayerAvatar";
 import {PlayerLink} from "../components/PlayerLink";
 import {StorePaymentStatusBadge} from "../components/StorePaymentStatusBadge";
+import {shortDate} from "../components/StatCharts";
+import type {StorePaymentPlayerRef} from "../api/types";
+import {Timestamp} from "../components/Timestamp";
 import {TablePager} from "../components/TablePager";
 
 const PAGE_SIZE = 10;
@@ -28,11 +31,11 @@ export function StoreTab() {
   const { me, loading } = useMe();
 
   // Wait for the rank before deciding — redirecting on a not-yet-loaded `me` would bounce a
-  // developer who is allowed in.
+  // manager who is allowed in.
   if (loading) {
     return <Skeleton className="h-64 w-full" />;
   }
-  if (!rankAtLeast(me?.rank, "DEVELOPER")) {
+  if (!rankAtLeast(me?.rank, "MANAGER")) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -57,7 +60,7 @@ function StoreDashboard() {
   const windowLabel = summary?.truncated ? `Last ${summary.sales} sales` : `Last ${SUMMARY_DAYS} days`;
 
   const series = (summary?.series ?? []).map((point) => ({
-    date: new Date(point.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+    date: shortDate(point.date),
     revenue: point.revenue,
     sales: point.sales,
   }));
@@ -207,9 +210,7 @@ function StoreDashboard() {
               payments.map((payment, i) => (
                 <TableRow key={payment.transactionId}>
                   <TableCell>
-                    <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
-                      {payment.date ? new Date(payment.date).toLocaleString() : "—"}
-                    </span>
+                    <Timestamp value={payment.date} className="text-xs" />
                   </TableCell>
                   <TableCell>
                     <PaymentPlayer player={payment.player} seed={(page - 1) * PAGE_SIZE + i} />
@@ -263,12 +264,13 @@ function StoreDashboard() {
  * Tebex can store a non-Minecraft identifier (or none at all), so only link to a player page when
  * the API resolved a real UUID.
  */
-function PaymentPlayer({ player, seed }: { player: { id: string | null; name: string | null }; seed: number }) {
+function PaymentPlayer({ player, seed }: { player: StorePaymentPlayerRef; seed: number }) {
   const name = player.name ?? "Unknown";
 
+  // The head needs the player to have joined at least once; otherwise the avatar falls back to initials.
   const body = (
     <div className="flex items-center gap-2.5">
-      <PlayerAvatar initials={initials(name)} seed={seed} />
+      <PlayerAvatar initials={initials(name)} seed={seed} skinTextureValue={player.skinTextureValue} />
       <span className="text-sm text-foreground">{name}</span>
     </div>
   );

@@ -30,9 +30,9 @@ export const NAV_ITEMS: {
   { key: "motd",        path: "/motd",        label: "MOTD Editor",  icon: <Megaphone size={15} />,      minRank: "DEVELOPER" },
   { key: "statistics",  path: "/statistics",  label: "Statistics",   icon: <BarChart3 size={15} />,      minRank: "ADMIN",     group: "Analytics" },
   { key: "servers",     path: "/server-metrics", label: "Server Metrics", icon: <Gauge size={15} />,      minRank: "DEVELOPER", group: "Analytics" },
+  { key: "store",       path: "/store",       label: "Store",        icon: <ShoppingCart size={15} />,   minRank: "MANAGER",   group: "Analytics" },
   { key: "islands",     path: "/islands",     label: "Islands",      icon: <Home size={15} />,           group: "Skyblock" },
   { key: "gangs",       path: "/gangs",       label: "Gangs",        icon: <Swords size={15} />,         group: "Prison" },
-  { key: "store",       path: "/store",       label: "Store",        icon: <ShoppingCart size={15} />,   minRank: "DEVELOPER" },
 ];
 
 const DEFAULT_GROUP = "Menu";

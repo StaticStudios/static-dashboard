@@ -73,7 +73,7 @@ import type {
     PunishmentResponse,
     StoreCurrencyTotal,
 } from "../../api/types";
-import {cn,formatMoney, initials, rankAtLeast} from "../../../lib/utils";
+import {cn, formatMoney, initials, rankAtLeast} from "../../../lib/utils";
 import {actionIdColor} from "../../lib/auditActions";
 
 function formatPlaytime(seconds: number): string {
@@ -240,18 +240,6 @@ function MoneySpent({ totals }: { totals: StoreCurrencyTotal[] }) {
         </span>
       ))}
     </>
-  );
-}
-
-function StatCard({ icon, label, value }: { icon: ReactNode; label: string; value: ReactNode }) {
-  return (
-    <Card className="px-4 py-3.5 flex-row items-center gap-3">
-      <span className="text-primary">{icon}</span>
-      <div className="min-w-0">
-        <p className="text-lg font-bold font-mono text-foreground leading-none truncate">{value}</p>
-        <p className="text-[10px] font-mono text-muted-foreground mt-0.5">{label}</p>
-      </div>
-    </Card>
   );
 }
 
@@ -596,9 +584,11 @@ export function PlayerDetail() {
   }, [id]);
 
   const { balance: giftCardBalance, loading: giftCardBalanceLoading } = usePlayerGiftCardBalance(id);
-  // Store spend is developer-only, so the hooks stay idle for everyone else rather than firing a
-  // request the API would reject.
-  const canSeeStore = rankAtLeast(me?.rank, "DEVELOPER");
+  // Store money is MANAGER+ (the spend card, and each purchase's amount). ADMIN sees the purchase list
+  // without amounts; the API strips them, this only hides the empty column. Both flags also gate the
+  // requests, so nobody fires a call the API would reject.
+  const canSeeStore = rankAtLeast(me?.rank, "MANAGER");
+  const canSeePurchases = rankAtLeast(me?.rank, "ADMIN");
   const { summary: storeSummary, loading: storeSummaryLoading } = usePlayerStoreSummary(id, canSeeStore);
   const [purchasesPage, setPurchasesPage] = useState(1);
   const {
@@ -606,8 +596,8 @@ export function PlayerDetail() {
     totalElements: purchasesTotal,
     totalPages: purchasesTotalPages,
     loading: purchasesLoading,
-  } = usePlayerStorePurchases(id, purchasesPage, PURCHASES_PAGE_SIZE, canSeeStore);
-
+  } = usePlayerStorePurchases(id, purchasesPage, PURCHASES_PAGE_SIZE, canSeePurchases);
+  const purchaseColumns = canSeeStore ? 4 : 3;
 
   const [giftCardHistoryPage, setGiftCardHistoryPage] = useState(1);
   const {
@@ -717,8 +707,8 @@ export function PlayerDetail() {
         <StatCard icon={<Calendar size={16} />} label="First Joined" value={profile ? <Timestamp value={profile.firstEverJoined} className="text-sm text-foreground" /> : "…"} />
         <StatCard icon={<Activity size={16} />} label="Last Seen" value={profile ? <Timestamp value={profile.lastSeen} className="text-sm text-foreground" /> : "…"} />
         <StatCard icon={<Shield size={16} />} label="Punishments" value={punishmentsLoading ? "…" : punishmentsTotal} />
-        <StatCard icon={<Wallet size={16} />} className="col-span-2 lg:col-span-1" label="Giftcard Balance" value={giftCardBalanceLoading ? "…" : currency(giftCardBalance ?? 0)} />
-        <StatCard icon={<Wallet size={16} />} label="Giftcard Balance" value={giftCardBalanceLoading ? "…" : currency(giftCardBalance ?? 0)} />
+        {/* Full width only as the odd 5th card on the 2-column grid; with Money Spent the count is even. */}
+        <StatCard icon={<Wallet size={16} />} className={cn(!canSeeStore && "col-span-2 lg:col-span-1")} label="Giftcard Balance" value={giftCardBalanceLoading ? "…" : currency(giftCardBalance ?? 0)} />
         {canSeeStore && (
           <StatCard
             icon={<ShoppingCart size={16} />}
@@ -1053,7 +1043,7 @@ export function PlayerDetail() {
           </Card>
 
           {/* Store purchases */}
-          {canSeeStore && (
+          {canSeePurchases && (
             <Card className="overflow-hidden">
               <CardHeader>
                 <div className="flex items-center gap-2">
@@ -1068,14 +1058,14 @@ export function PlayerDetail() {
                   <TableRow>
                     <TableHead>Date</TableHead>
                     <TableHead>Packages</TableHead>
-                    <TableHead>Amount</TableHead>
+                    {canSeeStore && <TableHead>Amount</TableHead>}
                     <TableHead className="hidden md:table-cell">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {purchases.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="px-5 py-10 text-center text-sm font-mono text-muted-foreground">
+                      <TableCell colSpan={purchaseColumns} className="px-5 py-10 text-center text-sm font-mono text-muted-foreground">
                         {purchasesLoading ? "Loading purchases…" : "No store purchases on record."}
                       </TableCell>
                     </TableRow>
@@ -1083,9 +1073,7 @@ export function PlayerDetail() {
                     purchases.map((purchase) => (
                       <TableRow key={purchase.transactionId}>
                         <TableCell>
-                          <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
-                            {purchase.date ? new Date(purchase.date).toLocaleString() : "—"}
-                          </span>
+                          <Timestamp value={purchase.date} className="text-xs" />
                         </TableCell>
                         <TableCell>
                           {/* Tebex only names packages that are still active, so an expired one shows a dash. */}
@@ -1095,11 +1083,13 @@ export function PlayerDetail() {
                               : purchase.packages.map((pkg) => pkg.name).join(", ")}
                           </span>
                         </TableCell>
-                        <TableCell>
-                          <span className="text-xs font-mono font-semibold text-foreground whitespace-nowrap">
-                            {formatMoney(purchase.amount, purchase.symbol)}
-                          </span>
-                        </TableCell>
+                        {canSeeStore && (
+                          <TableCell>
+                            <span className="text-xs font-mono font-semibold text-foreground whitespace-nowrap">
+                              {purchase.amount === null ? "—" : formatMoney(purchase.amount, purchase.symbol)}
+                            </span>
+                          </TableCell>
+                        )}
                         <TableCell className="hidden md:table-cell">
                           <StorePaymentStatusBadge status={purchase.status} />
                         </TableCell>
@@ -1109,7 +1099,7 @@ export function PlayerDetail() {
                   {/* filler rows keep the card height constant across pages */}
                   {Array.from({ length: PURCHASES_PAGE_SIZE - (purchases.length === 0 ? 1 : purchases.length) }, (_, i) => (
                     <TableRow key={`filler-${i}`} className="hover:bg-transparent">
-                      <TableCell colSpan={4}>&nbsp;</TableCell>
+                      <TableCell colSpan={purchaseColumns}>&nbsp;</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

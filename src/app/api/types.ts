@@ -181,6 +181,8 @@ export interface StorePaymentPlayerRef {
   /** Null when Tebex's stored identifier is not a Minecraft UUID — render the name as plain text. */
   id: string | null;
   name: string | null;
+  /** From `public.players`; null for anyone who has never joined, so the avatar shows initials. */
+  skinTextureValue: string | null;
 }
 
 export interface StorePayment {
@@ -234,7 +236,8 @@ export interface PlayerStoreSummary {
 export interface PlayerPurchase {
   transactionId: string;
   date: string | null;
-  amount: number;
+  /** Null below MANAGER: ADMIN may see what a player bought, but not what they paid. */
+  amount: number | null;
   currency: string | null;
   symbol: string | null;
   status: string;
