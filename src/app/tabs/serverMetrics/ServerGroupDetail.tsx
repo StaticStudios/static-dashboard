@@ -175,12 +175,13 @@ function ServerCard({
 
   return (
     <Card className="gap-0 overflow-hidden" style={tintedCardStyle(color)}>
-      <div className="flex items-center justify-between gap-3 px-5 py-4 border-b" style={{ borderColor: tint(color, 20) }}>
-        <div className="min-w-0">
+      {/* Wraps on narrow screens: the name keeps its room and the controls move to a second line. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-4 border-b" style={{ borderColor: tint(color, 20) }}>
+        <div className="min-w-0 flex-1 basis-48">
           <p className="text-sm font-bold font-mono text-foreground truncate">{server.serverId}</p>
           <p className="text-[10px] font-mono text-muted-foreground truncate">session {server.sessionId}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           <ProfilerControls serverId={server.serverId} reports={reports} />
           <HealthBadge health={serverHealth(server, now)} />
         </div>
