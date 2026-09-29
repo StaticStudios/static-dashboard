@@ -18,6 +18,7 @@ import {
   groupHealth,
   HealthBadge,
   HealthChart,
+  ChartTitle,
   meanMspt,
   MetricTile,
   MSPT_CRITICAL,
@@ -140,11 +141,11 @@ function GroupSummary({ group, minutes, color, now }: { group: ServerGroupMetric
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">TPS · last {minutes} minutes</p>
+              <ChartTitle title={`TPS · last ${minutes} minutes`} metric="tps" />
               <HealthChart servers={group.servers} metric="tps" color={color} height={200} />
             </div>
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">MSPT · last {minutes} minutes</p>
+              <ChartTitle title={`MSPT · last ${minutes} minutes`} metric="mspt" />
               <HealthChart servers={group.servers} metric="mspt" color={color} height={200} />
             </div>
           </div>
@@ -214,11 +215,11 @@ function ServerCard({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
-            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">TPS · last {minutes} minutes</p>
+            <ChartTitle title={`TPS · last ${minutes} minutes`} metric="tps" />
             <HealthChart servers={[server]} metric="tps" color={color} height={150} />
           </div>
           <div>
-            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">MSPT (mean, p95 dashed)</p>
+            <ChartTitle title="MSPT (mean, p95 dashed)" metric="mspt" showP95 />
             <HealthChart servers={[server]} metric="mspt" color={color} height={150} showP95 />
           </div>
         </div>

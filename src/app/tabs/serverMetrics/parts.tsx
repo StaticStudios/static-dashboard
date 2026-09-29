@@ -1,8 +1,10 @@
 import type {ReactNode} from "react";
 import {CartesianGrid, Line, LineChart, ReferenceLine, XAxis, YAxis} from "recharts";
+import {Info} from "lucide-react";
 import {cn} from "../../../lib/utils";
 import {tint} from "../../../lib/gamemodes";
 import {type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent} from "../../components/ui/chart";
+import {Popover, PopoverContent, PopoverTrigger} from "../../components/ui/popover";
 import {formatClockTime, formatTimestamp} from "../../components/Timestamp";
 import type {BackendHealthPoint, BackendServerMetrics, ServerGroupMetrics} from "../../api/types";
 
@@ -15,6 +17,10 @@ export const TPS_CRITICAL = 15;
 export const MSPT_DEGRADED = 40;
 export const MSPT_CRITICAL = 50;
 const STALE_MS = 30_000;
+
+/** Colours of the threshold lines, reused for their numbers on the axis and in the chart explanations. */
+const DEGRADED_COLOR = "#f59e0b";
+const CRITICAL_COLOR = "var(--destructive)";
 
 export type Health = "healthy" | "degraded" | "critical" | "stale" | "starting" | "offline";
 
@@ -182,22 +188,92 @@ export type ChartMetric = "tps" | "mspt";
 const METRIC: Record<ChartMetric, {
   pick: (p: BackendHealthPoint) => number | null;
   unit: string;
-  domain: [number, number | ((max: number) => number)];
+  /** Top of the Y axis for the largest value drawn. */
+  top: (max: number) => number;
+  /** Plain axis ticks; the threshold values are always added on top of these. */
+  ticks: (top: number) => number[];
   lines: { y: number; critical: boolean }[];
 }> = {
   tps: {
     pick: (p) => p.tps,
     unit: "TPS",
-    domain: [0, 20],
+    top: () => 20,
+    // No 20: it would sit too close to the 18 threshold to read on the small charts.
+    ticks: () => [0, 5, 10],
     lines: [{ y: TPS_DEGRADED, critical: false }, { y: TPS_CRITICAL, critical: true }],
   },
   mspt: {
     pick: (p) => p.mspt,
     unit: "ms",
-    domain: [0, (max) => Math.max(60, Math.ceil(max / 10) * 10)],
+    top: (max) => Math.max(60, Math.ceil(max / 10) * 10),
+    ticks: (top) => [0, 20, top],
     lines: [{ y: MSPT_DEGRADED, critical: false }, { y: MSPT_CRITICAL, critical: true }],
   },
 };
+
+/** What a chart shows and what its threshold lines mean, for the info popover beside its title. */
+function chartExplanation(metric: ChartMetric, showP95: boolean): ReactNode {
+  const degraded = <span style={{ color: DEGRADED_COLOR }}>amber</span>;
+  const critical = <span style={{ color: CRITICAL_COLOR }}>red</span>;
+  if (metric === "tps") {
+    return (
+      <>
+        <p>
+          Ticks per second, averaged over the last minute. 20 is the maximum: the server keeps up with every
+          game tick. One line per server.
+        </p>
+        <p>
+          Below the {degraded} line ({TPS_DEGRADED}) the server counts as degraded. Below the {critical} line
+          ({TPS_CRITICAL}) it is critical and players notice lag.
+        </p>
+      </>
+    );
+  }
+  return (
+    <>
+      <p>
+        Milliseconds per tick: how long the server takes to run one game tick, as a 10-second mean (Paper's own
+        average before spark starts).
+      </p>
+      <p>
+        Each tick has a {MSPT_CRITICAL}ms budget. Above the {critical} line ({MSPT_CRITICAL}ms) the server can no
+        longer hold 20 TPS; the {degraded} line ({MSPT_DEGRADED}ms) warns that it is getting close.
+      </p>
+      {showP95 && (
+        <p>
+          The dashed line is the 95th percentile: the slowest ticks, which show short lag spikes that the mean
+          smooths over.
+        </p>
+      )}
+    </>
+  );
+}
+
+/**
+ * A chart's title with an info button on the right explaining the chart. The explanation opens on click
+ * rather than hover, so it also works on touch screens.
+ */
+export function ChartTitle({ title, metric, showP95 = false }: { title: ReactNode; metric: ChartMetric; showP95?: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-2 mb-2">
+      <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">{title}</p>
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            aria-label="What this chart shows"
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Info size={12} />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-72 p-3 space-y-2 text-[11px] leading-snug text-muted-foreground">
+          {chartExplanation(metric, showP95)}
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
 
 /**
  * TPS or MSPT over the window, one line per server in the gamemode colour. With `showP95` (meant for a
@@ -234,6 +310,16 @@ export function HealthChart({
   );
   if (drawP95) config.p95 = { label: "p95", color };
 
+  let max = 0;
+  for (const row of data) {
+    for (const [key, value] of Object.entries(row)) {
+      if (key !== "t" && value > max) max = value;
+    }
+  }
+  const top = spec.top(max);
+  const thresholdColor = new Map(spec.lines.map((line) => [line.y, line.critical ? CRITICAL_COLOR : DEGRADED_COLOR]));
+  const ticks = [...new Set([...spec.ticks(top), ...thresholdColor.keys()])].sort((a, b) => a - b);
+
   if (data.length === 0) {
     return (
       <div className="flex items-center justify-center" style={{ height }}>
@@ -262,15 +348,29 @@ export function HealthChart({
           width={30}
           tickLine={false}
           axisLine={false}
-          fontSize={10}
-          domain={spec.domain}
+          domain={[0, top]}
+          ticks={ticks}
+          interval={0}
           allowDataOverflow={metric === "tps"}
+          tick={({ x, y, payload }: { x: number; y: number; payload: { value: number } }) => (
+            <text
+              x={x}
+              y={y}
+              dy={3}
+              textAnchor="end"
+              fontSize={10}
+              fill={thresholdColor.get(payload.value) ?? "var(--muted-foreground)"}
+              fontWeight={thresholdColor.has(payload.value) ? 600 : undefined}
+            >
+              {payload.value}
+            </text>
+          )}
         />
         {spec.lines.map((line) => (
           <ReferenceLine
             key={line.y}
             y={line.y}
-            stroke={line.critical ? "var(--destructive)" : "#f59e0b"}
+            stroke={line.critical ? CRITICAL_COLOR : DEGRADED_COLOR}
             strokeDasharray="4 4"
             strokeOpacity={0.5}
           />

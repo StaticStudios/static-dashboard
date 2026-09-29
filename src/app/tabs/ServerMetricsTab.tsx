@@ -13,6 +13,7 @@ import {
   groupHealth,
   HealthBadge,
   HealthChart,
+  ChartTitle,
   MetricTile,
   meanMspt,
   MSPT_CRITICAL,
@@ -200,7 +201,7 @@ function GroupCard({ group, now }: { group: ServerGroupMetrics; now: number }) {
             </div>
           ) : (
             <div>
-              <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">TPS · last 5 minutes</p>
+              <ChartTitle title="TPS · last 5 minutes" metric="tps" />
               <HealthChart servers={group.servers} metric="tps" color={color} height={140} />
             </div>
           )}
