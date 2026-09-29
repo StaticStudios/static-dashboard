@@ -9,8 +9,10 @@ import {
     ExternalLink,
     Fingerprint,
     Gamepad2,
+    Globe,
     Home,
     Link2,
+    Maximize2,
     MessageSquare,
     Search,
     Shield,
@@ -27,6 +29,7 @@ import {Input} from "../../components/ui/input";
 import {Separator} from "../../components/ui/separator";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "../../components/ui/table";
 import {Collapsible, CollapsibleContent, CollapsibleTrigger} from "../../components/ui/collapsible";
+import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from "../../components/ui/dialog";
 import {FilterSelect} from "../../components/FilterSelect";
 import {MultiSelectFilter} from "../../components/MultiSelectFilter";
 import {SearchInput} from "../../components/SearchInput";
@@ -48,6 +51,7 @@ import {
     usePlayerAlts,
     usePlayerChatTags,
     usePlayerConversations,
+    usePlayerIpHistory,
     usePlayerProfile,
 } from "../../hooks/usePlayers";
 import {useDebounced} from "../../hooks/useDebounced";
@@ -57,7 +61,14 @@ import {TicketPersonLabel} from "../../components/TicketPersonLabel";
 import {PunishmentStatusBadge} from "../../components/PunishmentStatusBadge";
 import {fetchPunishments} from "../../api/punishments";
 import {fetchPlayerGiftCardBalance, fetchPlayerGiftCardHistory} from "../../api/giftcards";
-import type {GiftCardHistoryEntry, PlayerAlt, PlayerChatTag, PlayerProfile, PunishmentResponse} from "../../api/types";
+import type {
+    GiftCardHistoryEntry,
+    PlayerAlt,
+    PlayerChatTag,
+    PlayerIpHistory,
+    PlayerProfile,
+    PunishmentResponse
+} from "../../api/types";
 import {cn, initials, rankAtLeast} from "../../../lib/utils";
 import {actionIdColor} from "../../lib/auditActions";
 
@@ -330,6 +341,101 @@ function PossibleAltsCard({
   );
 }
 
+/** The player's most recent login IP, with a dialog listing every IP they have recently used. ADMIN+ only. */
+function IpAddressCard({ ipHistory, loading }: { ipHistory: PlayerIpHistory | null; loading: boolean }) {
+  const [open, setOpen] = useState(false);
+  const current = ipHistory?.currentIpAddress ?? null;
+  const history = ipHistory?.history ?? [];
+  const lastLogin = history[0]?.lastSeen ?? null;
+
+  return (
+    <Card className="overflow-hidden">
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Globe size={14} className="text-primary" />
+          <CardTitle>IP Address</CardTitle>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="ml-auto h-7 w-7"
+            title="Expand IP history"
+            disabled={history.length === 0}
+            onClick={() => setOpen(true)}
+          >
+            <Maximize2 size={13} />
+          </Button>
+        </div>
+      </CardHeader>
+      <Separator />
+      <CardContent className="p-3">
+        {loading && !ipHistory ? (
+          <p className="text-xs font-mono text-muted-foreground py-2 px-2">Loading…</p>
+        ) : current ? (
+          <div className="space-y-1.5 px-2 py-1">
+            <p className="text-xs font-mono text-foreground font-semibold">
+              <SpoilerText value={current} className="text-xs" />
+            </p>
+            {lastLogin && (
+              <p className="text-[10px] font-mono text-muted-foreground">
+                Last login <Timestamp value={lastLogin} className="text-[10px]" />
+              </p>
+            )}
+            <p className="text-[10px] font-mono text-muted-foreground">
+              {history.length} distinct {history.length === 1 ? "IP" : "IPs"} on record
+            </p>
+          </div>
+        ) : (
+          <p className="text-xs font-mono text-muted-foreground py-2 px-2">No IP on record.</p>
+        )}
+      </CardContent>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>IP History</DialogTitle>
+            <DialogDescription>Distinct IPs this player logged in from, most recently used first</DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>IP</TableHead>
+                  <TableHead className="hidden sm:table-cell">First Seen</TableHead>
+                  <TableHead>Last Seen</TableHead>
+                  <TableHead className="text-right">Logins</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {history.map((entry) => (
+                  <TableRow key={entry.ipAddress}>
+                    <TableCell>
+                      <span className="inline-flex items-center gap-2 text-xs font-mono">
+                        <SpoilerText value={entry.ipAddress} className="text-xs" />
+                        {entry.ipAddress === current && (
+                          <Badge variant="secondary" className="text-[9px]">Current</Badge>
+                        )}
+                      </span>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <Timestamp value={entry.firstSeen} className="text-xs" />
+                    </TableCell>
+                    <TableCell>
+                      <Timestamp value={entry.lastSeen} className="text-xs" />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="text-xs font-mono text-muted-foreground tabular-nums">{entry.logins}</span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
 /** CUSTOM tags are namespaced `<playerUuid>_<name>` by ChatTagManager.generateTagName. */
 const CUSTOM_TAG_PREFIX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}_/i;
 
@@ -429,6 +535,9 @@ export function PlayerDetail() {
   // as the card, so staff below that tier never fire a call the API would refuse.
   const { me } = useMe();
   const canSeeTickets = rankAtLeast(me?.rank, "ADMIN");
+  // IP addresses are ADMIN-only too; same reasoning, the flag also gates the request.
+  const canSeeIps = rankAtLeast(me?.rank, "ADMIN");
+  const { ipHistory, loading: ipHistoryLoading } = usePlayerIpHistory(id, canSeeIps);
   const [ticketsPage, setTicketsPage] = useState(1);
   const {
     tickets,
@@ -1111,6 +1220,7 @@ export function PlayerDetail() {
 
         <div className="space-y-6">
           <DiscordStatusCard discord={profile?.discord ?? null} loading={loading && !profile} />
+          {canSeeIps && <IpAddressCard ipHistory={ipHistory} loading={ipHistoryLoading} />}
           <PossibleAltsCard alts={alts} loading={altsLoading} days={altsDays} onDaysChange={setAltsDays} />
           <ChatTagsCard chatTags={chatTags} loading={chatTagsLoading} />
         </div>

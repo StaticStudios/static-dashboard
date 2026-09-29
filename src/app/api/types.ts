@@ -39,6 +39,20 @@ export interface PlayerAlt {
   ipAddresses: string[];
 }
 
+/** One distinct IP a player has logged in from; the proxy logs a row per login, collapsed here. */
+export interface PlayerIpHistoryEntry {
+  ipAddress: string;
+  firstSeen: string;
+  lastSeen: string;
+  logins: number;
+}
+
+/** ADMIN+ only. `history` is most recently used first. */
+export interface PlayerIpHistory {
+  currentIpAddress: string | null;
+  history: PlayerIpHistoryEntry[];
+}
+
 export type ChatTagType = "STANDARD" | "CUSTOM";
 
 export type ServerGroup = "SKYBLOCK" | "PRISON" | "HUB";
