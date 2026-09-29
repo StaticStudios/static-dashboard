@@ -29,15 +29,24 @@ const CLOCK = new Intl.DateTimeFormat(undefined, {
   second: "2-digit",
 });
 
+const CLOCK_MINUTES = new Intl.DateTimeFormat(undefined, {
+  hour: "numeric",
+  minute: "2-digit",
+});
+
 /**
  * Time of day only, for spots where the date is implied and space is tight, such as chart axes over
- * the last few minutes. Everywhere else, use `formatTimestamp` or `<Timestamp>`.
+ * the last few minutes. Pass `seconds: false` for axes spanning hours. Everywhere else, use
+ * `formatTimestamp` or `<Timestamp>`.
  */
-export function formatClockTime(value: string | number | Date | null | undefined): string | null {
+export function formatClockTime(
+  value: string | number | Date | null | undefined,
+  { seconds = true }: { seconds?: boolean } = {},
+): string | null {
   if (value === null || value === undefined || value === "") return null;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
-  return CLOCK.format(date);
+  return (seconds ? CLOCK : CLOCK_MINUTES).format(date);
 }
 
 /** Formats an instant the same way everywhere; returns null when the value is absent or unparseable. */

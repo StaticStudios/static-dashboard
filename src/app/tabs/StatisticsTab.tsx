@@ -18,7 +18,8 @@ import {cn, initials, rankAtLeast} from "../../lib/utils";
 import {actionIdColor, actionLabel} from "../lib/auditActions";
 import {useMe} from "../hooks/useMe";
 import {useGameplayStatistics, useSessionStatistics, useStatisticsOverview} from "../hooks/useStatistics";
-import type {CrateReward, StatCount, StatPoint} from "../api/types";
+import {usePlayerCountHistory} from "../hooks/usePlayerCountHistory";
+import type {CrateReward, StatCount} from "../api/types";
 import {Badge} from "../components/ui/badge";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "../components/ui/card";
 import {Progress} from "../components/ui/progress";
@@ -35,6 +36,14 @@ import {
 import {FilterSelect} from "../components/FilterSelect";
 import {PlayerAvatar} from "../components/PlayerAvatar";
 import {PlayerLink} from "../components/PlayerLink";
+import {
+  ChartEmpty,
+  LoginsPerDayCard,
+  PlayerCountChart,
+  PlayerCountTitle,
+  shortDate,
+  tooltipFormatter,
+} from "../components/StatCharts";
 
 const WINDOW_OPTIONS = [
   { value: "7", label: "Last 7 days" },
@@ -223,27 +232,9 @@ function Statistics() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Zap size={14} className="text-primary" />
-            <CardTitle>Logins per day</CardTitle>
-          </div>
-          <CardDescription>
-            Counted on the proxy, which sees each login exactly once. New players are first ever joins.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <MultiSeries
-            series={[
-              { key: "logins", label: "Logins", color: "var(--chart-1)", points: sessions?.loginSeries ?? [] },
-              { key: "unique", label: "Unique player logins", color: "var(--chart-4)", points: sessions?.uniquePlayerSeries ?? [] },
-              { key: "new", label: "New player logins", color: "var(--chart-5)", points: sessions?.newPlayerSeries ?? [] },
-            ]}
-            loading={sessionsLoading}
-          />
-        </CardContent>
-      </Card>
+      <PlayerCountCard />
+
+      <LoginsPerDayCard sessions={sessions} loading={sessionsLoading} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         <Card>
@@ -340,6 +331,40 @@ function Statistics() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/** In minutes. The proxy keeps 24 hours of samples, so that is the longest window on offer. */
+const PLAYER_COUNT_WINDOWS = [
+  { value: "5", label: "Last 5 min" },
+  { value: "15", label: "Last 15 min" },
+  { value: "30", label: "Last 30 min" },
+  { value: "60", label: "Last 60 min" },
+  { value: "720", label: "Last 12 hours" },
+  { value: "1440", label: "Last 24 hours" },
+];
+
+/** Live player counts, with its own window: the page's day picker is far too coarse for it. */
+function PlayerCountCard() {
+  const [window, setWindow] = useState("60");
+  const minutes = Number(window);
+  const history = usePlayerCountHistory(minutes);
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
+        <PlayerCountTitle />
+        <FilterSelect
+          value={window}
+          onValueChange={setWindow}
+          options={PLAYER_COUNT_WINDOWS}
+          className="w-[150px] shrink-0"
+        />
+      </CardHeader>
+      <CardContent>
+        <PlayerCountChart history={history} minutes={minutes} />
+      </CardContent>
+    </Card>
   );
 }
 
@@ -462,78 +487,6 @@ function RewardDistribution({ rewards, loading }: { rewards: CrateReward[]; load
   );
 }
 
-interface Series {
-  key: string;
-  label: string;
-  color: string;
-  points: StatPoint[];
-}
-
-/**
- * Several daily counts overlaid, not stacked: each is a subset of the one before it (new players are
- * unique players, which are logins), so stacking would double count.
- */
-function MultiSeries({ series, loading }: { series: Series[]; loading: boolean }) {
-  if (loading) {
-    return <Skeleton className="h-[240px] w-full" />;
-  }
-
-  // The API zero-fills every series over the same window, but join on the date rather than the index
-  // so a series that comes back empty or shorter can't shift the others.
-  const byDate = new Map<string, Record<string, string | number>>();
-  for (const s of series) {
-    for (const point of s.points) {
-      const row = byDate.get(point.date) ?? { date: point.date };
-      row[s.key] = point.count;
-      byDate.set(point.date, row);
-    }
-  }
-  const data = [...byDate.values()]
-    .sort((a, b) => String(a.date).localeCompare(String(b.date)))
-    .map((row) => ({ ...row, date: shortDate(String(row.date)) }));
-
-  if (data.length === 0) {
-    return <ChartEmpty />;
-  }
-
-  const config: ChartConfig = Object.fromEntries(series.map((s) => [s.key, { label: s.label, color: s.color }]));
-  // Keys double as CSS variable names, so they can't be the human-readable labels the tooltip shows.
-  const labels = Object.fromEntries(series.map((s) => [s.key, s.label]));
-  const formatter = (value: unknown, name: string) => tooltipFormatter(value, labels[name] ?? name);
-
-  return (
-    <ChartContainer config={config} className="h-[240px] w-full">
-      <AreaChart data={data} margin={{ left: 4, right: 12, top: 8 }}>
-        <defs>
-          {series.map((s) => (
-            <linearGradient key={s.key} id={`fill-series-${s.key}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={`var(--color-${s.key})`} stopOpacity={0.25} />
-              <stop offset="95%" stopColor={`var(--color-${s.key})`} stopOpacity={0.02} />
-            </linearGradient>
-          ))}
-        </defs>
-        <CartesianGrid vertical={false} />
-        <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} minTickGap={32} />
-        <YAxis width={44} tickLine={false} axisLine={false} allowDecimals={false} />
-        <ChartTooltip content={<ChartTooltipContent formatter={formatter} />} />
-        {series.map((s) => (
-          <Area
-            key={s.key}
-            dataKey={s.key}
-            type="monotone"
-            stroke={`var(--color-${s.key})`}
-            fill={`url(#fill-series-${s.key})`}
-            strokeWidth={2}
-            isAnimationActive={false}
-            dot={false}
-          />
-        ))}
-        <ChartLegend content={<ChartLegendContent />} />
-      </AreaChart>
-    </ChartContainer>
-  );
-}
-
 function StackedSeries({
   points,
   groups,
@@ -589,23 +542,6 @@ function StackedSeries({
   );
 }
 
-function tooltipFormatter(value: unknown, name: string) {
-  return (
-    <span className="flex w-full items-center justify-between gap-3">
-      <span className="text-muted-foreground">{name}</span>
-      <span className="font-mono font-medium text-foreground tabular-nums">{Number(value).toLocaleString()}</span>
-    </span>
-  );
-}
-
-function ChartEmpty() {
-  return (
-    <div className="h-[240px] flex items-center justify-center">
-      <p className="text-xs font-mono text-muted-foreground">No activity in this window.</p>
-    </div>
-  );
-}
-
 function num(value: number | undefined): string {
   return (value ?? 0).toLocaleString();
 }
@@ -624,6 +560,3 @@ function formatDuration(seconds: number): string {
   return `${Math.floor(seconds)}s`;
 }
 
-function shortDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}

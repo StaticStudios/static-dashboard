@@ -2,24 +2,25 @@ import { useEffect, useState } from "react";
 import { fetchPlayerCountHistory, type PlayerCountSample } from "../api/dashboard";
 
 export interface PlayerPoint {
-  time: string;
+  /** Epoch millis of the sample (or of the newest sample in an averaged bucket). */
+  time: number;
   network: number;
   skyblock: number;
   prison: number;
 }
 
-/** Poll interval in milliseconds. */
+/** The proxy samples every 10s, so short windows poll at the same cadence for new points. */
 const SAMPLE_INTERVAL = 10_000;
-/** Rolling window size — 30 points × 10s = 5 minutes, matching the server-side window. */
-const MAX_POINTS = 30;
+/**
+ * Windows over an hour come back averaged into buckets, so appending raw 10s points would leave a
+ * dense tail on a coarse line. Those windows are refetched whole on this slower cadence instead.
+ */
+const LONG_WINDOW_REFRESH = 60_000;
+const LONG_WINDOW_MINUTES = 60;
 
 function toPoint(sample: PlayerCountSample): PlayerPoint {
   return {
-    time: new Date(sample.time).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    }),
+    time: sample.time,
     network: sample.network,
     skyblock: sample.skyblock,
     prison: sample.prison,
@@ -27,46 +28,58 @@ function toPoint(sample: PlayerCountSample): PlayerPoint {
 }
 
 /**
- * Returns the rolling player-count history maintained server-side (proxy sampler → Redis).
- * Fetches the full 5-minute window once on mount so the chart populates immediately, then polls
- * every 10s with `?since` to append only new points (oldest drops off via the fixed window).
+ * Returns the player-count history the proxy samples into Redis, over the last `minutes` (the proxy
+ * keeps 24 hours). Fetches the whole window on mount or when `minutes` changes. Windows up to an
+ * hour then poll every 10s with `?since` and drop points that age out of the window; longer ones
+ * refetch the whole window every minute.
  */
-export function usePlayerCountHistory() {
+export function usePlayerCountHistory(minutes = 5) {
   const [history, setHistory] = useState<PlayerPoint[]>([]);
 
   useEffect(() => {
     let cancelled = false;
     let lastTime = 0;
+    const windowMillis = minutes * 60_000;
+    const longWindow = minutes > LONG_WINDOW_MINUTES;
 
-    async function seed() {
+    setHistory([]);
+
+    async function load() {
       try {
-        const samples = await fetchPlayerCountHistory();
-        if (cancelled || samples.length === 0) return;
-        lastTime = samples[samples.length - 1].time;
-        setHistory(samples.slice(-MAX_POINTS).map(toPoint));
+        const samples = await fetchPlayerCountHistory({ minutes });
+        if (cancelled) return;
+        lastTime = samples.length > 0 ? samples[samples.length - 1].time : 0;
+        setHistory(samples.map(toPoint));
       } catch {
-        // Transient error — the next poll retries.
+        // Transient error — the next tick retries.
       }
     }
 
     async function poll() {
+      if (!lastTime) {
+        await load();
+        return;
+      }
       try {
-        const samples = await fetchPlayerCountHistory(lastTime || undefined);
-        if (cancelled || samples.length === 0) return;
-        lastTime = samples[samples.length - 1].time;
-        setHistory((prev) => prev.concat(samples.map(toPoint)).slice(-MAX_POINTS));
+        const samples = await fetchPlayerCountHistory({ since: lastTime, minutes });
+        if (cancelled) return;
+        if (samples.length > 0) {
+          lastTime = samples[samples.length - 1].time;
+        }
+        const cutoff = Date.now() - windowMillis;
+        setHistory((prev) => prev.concat(samples.map(toPoint)).filter((point) => point.time >= cutoff));
       } catch {
         // Transient error — retried on the next tick.
       }
     }
 
-    seed();
-    const id = setInterval(poll, SAMPLE_INTERVAL);
+    load();
+    const id = setInterval(longWindow ? load : poll, longWindow ? LONG_WINDOW_REFRESH : SAMPLE_INTERVAL);
     return () => {
       cancelled = true;
       clearInterval(id);
     };
-  }, []);
+  }, [minutes]);
 
   return history;
 }

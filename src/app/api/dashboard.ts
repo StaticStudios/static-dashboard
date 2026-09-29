@@ -14,12 +14,10 @@ export interface PlayerCountSample {
 }
 
 /**
- * Fetches the rolling player-count history. Pass `since` (epoch millis of the newest point you
- * already have) to get only newer points for delta polling; omit it for the full window.
+ * Fetches the player-count history over the last `minutes` (default 5, up to 1440). Pass `since`
+ * (epoch millis of the newest point you already have) to get only newer points for delta polling;
+ * omit it for the full window. Windows over an hour come back averaged down to 360 points.
  */
-export function fetchPlayerCountHistory(since?: number) {
-  return apiFetch<PlayerCountSample[]>(
-    "/api/v1/public/minecraft/player_count/history",
-    since !== undefined ? { since } : undefined
-  );
+export function fetchPlayerCountHistory(opts: { since?: number; minutes?: number } = {}) {
+  return apiFetch<PlayerCountSample[]>("/api/v1/public/minecraft/player_count/history", opts);
 }

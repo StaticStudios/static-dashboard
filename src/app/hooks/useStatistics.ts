@@ -11,8 +11,9 @@ export function useStatisticsOverview(days: number) {
   return useSection(fetchStatisticsOverview, days, "Could not load the activity overview.");
 }
 
-export function useSessionStatistics(days: number) {
-  return useSection(fetchSessionStatistics, days, "Could not load session statistics.");
+/** `enabled = false` skips the request, for pages that show this to ADMIN+ only (the API refuses the rest). */
+export function useSessionStatistics(days: number, enabled = true) {
+  return useSection(fetchSessionStatistics, days, "Could not load session statistics.", enabled);
 }
 
 export function useGameplayStatistics(days: number) {
@@ -23,12 +24,18 @@ function useSection<T>(
   fetcher: (opts: { days?: number }) => Promise<T>,
   days: number,
   errorMessage: string,
+  enabled = true,
 ) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!enabled) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     fetcher({ days })
@@ -49,8 +56,8 @@ function useSection<T>(
       cancelled = true;
     };
     // `fetcher` and `errorMessage` are module-level constants supplied by the wrappers above, so the
-    // window is the only thing that can actually change here.
-  }, [days]);
+    // window and the enabled flag are the only things that can actually change here.
+  }, [days, enabled]);
 
   return { data, loading, error };
 }
