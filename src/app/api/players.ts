@@ -6,6 +6,7 @@ import type {
     Page,
     PlayerAlt,
     PlayerChatTag,
+    PlayerIpHistory,
     PlayerProfile,
     PlayerSummary
 } from "./types";
@@ -56,6 +57,10 @@ export function fetchPlayerActionSources(id: string) {
 
 export function fetchPlayerAlts(id: string, days = 30) {
   return apiFetch<PlayerAlt[]>(`/api/v1/internal/players/${id}/alts`, { days });
+}
+
+export function fetchPlayerIpHistory(id: string, limit = 50) {
+  return apiFetch<PlayerIpHistory>(`/api/v1/internal/players/${id}/ip-addresses`, { limit });
 }
 
 export function fetchPlayerChatTags(id: string) {

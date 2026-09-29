@@ -6,6 +6,7 @@ import {
     fetchPlayerAlts,
     fetchPlayerChatTags,
     fetchPlayerConversations,
+    fetchPlayerIpHistory,
     fetchPlayerProfile,
     fetchPlayers,
 } from "../api/players";
@@ -15,6 +16,7 @@ import type {
     ConversationBlock,
     PlayerAlt,
     PlayerChatTag,
+    PlayerIpHistory,
     PlayerProfile,
     PlayerSummary
 } from "../api/types";
@@ -181,6 +183,36 @@ export function usePlayerAlts(id: string | null, days = 30) {
   }, [id, days]);
 
   return { alts, loading };
+}
+
+/** Current IP and distinct-IP history. ADMIN+ only: pass `enabled = false` below that so no refused call is made. */
+export function usePlayerIpHistory(id: string | null, enabled: boolean) {
+  const [ipHistory, setIpHistory] = useState<PlayerIpHistory | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!id || !enabled) {
+      setIpHistory(null);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    fetchPlayerIpHistory(id)
+      .then((result) => {
+        if (!cancelled) setIpHistory(result);
+      })
+      .catch(() => {
+        if (!cancelled) setIpHistory(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, enabled]);
+
+  return { ipHistory, loading };
 }
 
 /** Every active chat tag this player owns, across all gamemodes, newest parse from the proxy. */
