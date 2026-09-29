@@ -178,7 +178,7 @@ export interface StorePackageRef {
 }
 
 export interface StorePaymentPlayerRef {
-  /** Null when Tebex's stored identifier is not a Minecraft UUID — render the name as plain text. */
+  /** Our own player id, matched by Tebex's UUID or name. Null when nobody matches — render plain text. */
   id: string | null;
   name: string | null;
   /** From `public.players`; null for anyone who has never joined, so the avatar shows initials. */
