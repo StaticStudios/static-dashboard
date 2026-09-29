@@ -1,6 +1,6 @@
 import type {ReactNode} from "react";
 import {useLocation, useNavigate} from "react-router";
-import {BarChart3, Gauge, Home, LayoutDashboard, Megaphone, MessageSquare, Shield, Swords, Ticket, Users, X} from "lucide-react";
+import {BarChart3, Gauge, Home, LayoutDashboard, Megaphone, MessageSquare, Shield, ShoppingCart, Swords, Ticket, Users, X} from "lucide-react";
 import logoSrc from "../../public/logo.png";
 import {cn, formatRank, initials, rankAtLeast, skinFaceUrl, type StaffPosition} from "../../lib/utils";
 import {Separator} from "./ui/separator";
@@ -30,6 +30,7 @@ export const NAV_ITEMS: {
   { key: "motd",        path: "/motd",        label: "MOTD Editor",  icon: <Megaphone size={15} />,      minRank: "DEVELOPER" },
   { key: "statistics",  path: "/statistics",  label: "Statistics",   icon: <BarChart3 size={15} />,      minRank: "ADMIN",     group: "Analytics" },
   { key: "servers",     path: "/server-metrics", label: "Server Metrics", icon: <Gauge size={15} />,      minRank: "DEVELOPER", group: "Analytics" },
+  { key: "store",       path: "/store",       label: "Store",        icon: <ShoppingCart size={15} />,   minRank: "MANAGER",   group: "Analytics" },
   { key: "islands",     path: "/islands",     label: "Islands",      icon: <Home size={15} />,           group: "Skyblock" },
   { key: "gangs",       path: "/gangs",       label: "Gangs",        icon: <Swords size={15} />,         group: "Prison" },
 ];
@@ -53,6 +54,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     motd:        null,
     statistics:  null,
     servers:     null,
+    store:       null,
     islands:     null,
     gangs:       null,
   };

@@ -16,6 +16,7 @@ import {
     MessageSquare,
     Search,
     Shield,
+    ShoppingCart,
     Sparkles,
     Tags,
     Ticket,
@@ -42,6 +43,7 @@ import {num, StatCard, StatRow} from "../../components/StatBlocks";
 import {MinecraftText} from "../../components/MinecraftText";
 import {PunishmentBadge} from "../../components/PunishmentBadge";
 import {GiftCardTypeBadge} from "../../components/GiftCardTypeBadge";
+import {StorePaymentStatusBadge} from "../../components/StorePaymentStatusBadge";
 import {TablePager} from "../../components/TablePager";
 import {ChatMessageRow, SERVER_COLORS} from "../../components/ChatMessageRow";
 import {
@@ -58,6 +60,7 @@ import {useDebounced} from "../../hooks/useDebounced";
 import {useMe} from "../../hooks/useMe";
 import {usePlayerTickets} from "../../hooks/useTickets";
 import {TicketPersonLabel} from "../../components/TicketPersonLabel";
+import {usePlayerStorePurchases, usePlayerStoreSummary} from "../../hooks/useStore";
 import {PunishmentStatusBadge} from "../../components/PunishmentStatusBadge";
 import {fetchPunishments} from "../../api/punishments";
 import {fetchPlayerGiftCardBalance, fetchPlayerGiftCardHistory} from "../../api/giftcards";
@@ -67,9 +70,10 @@ import type {
     PlayerChatTag,
     PlayerIpHistory,
     PlayerProfile,
-    PunishmentResponse
+    PunishmentResponse,
+    StoreCurrencyTotal,
 } from "../../api/types";
-import {cn, initials, rankAtLeast} from "../../../lib/utils";
+import {cn, formatMoney, initials, rankAtLeast} from "../../../lib/utils";
 import {actionIdColor} from "../../lib/auditActions";
 
 function formatPlaytime(seconds: number): string {
@@ -102,10 +106,11 @@ const PUNISHMENTS_PAGE_SIZE = 5;
 const TICKETS_PAGE_SIZE = 5;
 const CONVERSATIONS_PAGE_SIZE = 5;
 const GIFTCARD_HISTORY_PAGE_SIZE = 5;
+const PURCHASES_PAGE_SIZE = 5;
 
+/** Gift card amounts are always in the store's own currency, so they keep the default symbol. */
 function currency(n: number): string {
-  const sign = n < 0 ? "-" : "";
-  return `${sign}$${Math.abs(n).toFixed(2)}`;
+  return formatMoney(n);
 }
 
 function prettyJson(raw: string | null): string {
@@ -208,6 +213,34 @@ function usePlayerGiftCardHistory(id: string, page: number) {
   }, [id, page]);
 
   return { history, totalElements, totalPages, loading };
+}
+
+/**
+ * Renders one line per currency the player actually paid in. Tebex reports spend per currency and
+ * supplies no exchange rate, so the amounts are never summed or converted — for a single-currency
+ * store this is just one line, matching the Giftcard Balance card beside it.
+ */
+function MoneySpent({ totals }: { totals: StoreCurrencyTotal[] }) {
+  // A dash rather than a zero: with nothing bought there is no currency to render it in.
+  if (totals.length === 0) {
+    return <>—</>;
+  }
+
+  // The enclosing StatCard sets `leading-none`, which would collide stacked lines.
+  const stacked = totals.length > 1;
+
+  return (
+    <>
+      {totals.map((total, i) => (
+        <span
+          key={total.currency}
+          className={cn("block truncate", stacked && "leading-tight", i > 0 && "text-sm")}
+        >
+          {formatMoney(total.total, total.symbol)}
+        </span>
+      ))}
+    </>
+  );
 }
 
 /** Whether this player has linked a Discord account via the in-game /discord link command. */
@@ -551,6 +584,21 @@ export function PlayerDetail() {
   }, [id]);
 
   const { balance: giftCardBalance, loading: giftCardBalanceLoading } = usePlayerGiftCardBalance(id);
+  // Store money is MANAGER+ (the spend card, and each purchase's amount). ADMIN sees the purchase list
+  // without amounts; the API strips them, this only hides the empty column. Both flags also gate the
+  // requests, so nobody fires a call the API would reject.
+  const canSeeStore = rankAtLeast(me?.rank, "MANAGER");
+  const canSeePurchases = rankAtLeast(me?.rank, "ADMIN");
+  const { summary: storeSummary, loading: storeSummaryLoading } = usePlayerStoreSummary(id, canSeeStore);
+  const [purchasesPage, setPurchasesPage] = useState(1);
+  const {
+    purchases,
+    totalElements: purchasesTotal,
+    totalPages: purchasesTotalPages,
+    loading: purchasesLoading,
+  } = usePlayerStorePurchases(id, purchasesPage, PURCHASES_PAGE_SIZE, canSeePurchases);
+  const purchaseColumns = canSeeStore ? 4 : 3;
+
   const [giftCardHistoryPage, setGiftCardHistoryPage] = useState(1);
   const {
     history: giftCardHistory,
@@ -561,6 +609,7 @@ export function PlayerDetail() {
 
   useEffect(() => {
     setGiftCardHistoryPage(1);
+    setPurchasesPage(1);
   }, [id]);
 
   // Recent actions + filters
@@ -653,12 +702,20 @@ export function PlayerDetail() {
         <div className="space-y-6">
       {/* Quick stats. The two dates are the longest values and get the most width; the punishment
           count is a short number, so it gives up space. */}
-      <div className="grid grid-cols-2 lg:grid-cols-[1fr_1.35fr_1.35fr_0.6fr_1.15fr] gap-3">
+      <div className={cn("grid grid-cols-2 gap-3", canSeeStore ? "lg:grid-cols-3 2xl:grid-cols-6" : "lg:grid-cols-[1fr_1.35fr_1.35fr_0.6fr_1.15fr]")}>
         <StatCard icon={<Clock size={16} />} label="Total Playtime" value={profile ? formatPlaytime(profile.playtime.total) : "…"} />
         <StatCard icon={<Calendar size={16} />} label="First Joined" value={profile ? <Timestamp value={profile.firstEverJoined} className="text-sm text-foreground" /> : "…"} />
         <StatCard icon={<Activity size={16} />} label="Last Seen" value={profile ? <Timestamp value={profile.lastSeen} className="text-sm text-foreground" /> : "…"} />
         <StatCard icon={<Shield size={16} />} label="Punishments" value={punishmentsLoading ? "…" : punishmentsTotal} />
-        <StatCard icon={<Wallet size={16} />} className="col-span-2 lg:col-span-1" label="Giftcard Balance" value={giftCardBalanceLoading ? "…" : currency(giftCardBalance ?? 0)} />
+        {/* Full width only as the odd 5th card on the 2-column grid; with Money Spent the count is even. */}
+        <StatCard icon={<Wallet size={16} />} className={cn(!canSeeStore && "col-span-2 lg:col-span-1")} label="Giftcard Balance" value={giftCardBalanceLoading ? "…" : currency(giftCardBalance ?? 0)} />
+        {canSeeStore && (
+          <StatCard
+            icon={<ShoppingCart size={16} />}
+            label="Money Spent"
+            value={storeSummaryLoading ? "…" : <MoneySpent totals={storeSummary?.totals ?? []} />}
+          />
+        )}
       </div>
 
       {loading && !profile ? (
@@ -984,6 +1041,83 @@ export function PlayerDetail() {
               </>
             )}
           </Card>
+
+          {/* Store purchases */}
+          {canSeePurchases && (
+            <Card className="overflow-hidden">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <ShoppingCart size={14} className="text-primary" />
+                  <CardTitle>Store Purchases</CardTitle>
+                  <Badge variant="secondary" className="text-[10px]">{purchasesTotal}</Badge>
+                </div>
+              </CardHeader>
+              <Separator />
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Packages</TableHead>
+                    {canSeeStore && <TableHead>Amount</TableHead>}
+                    <TableHead className="hidden md:table-cell">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {purchases.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={purchaseColumns} className="px-5 py-10 text-center text-sm font-mono text-muted-foreground">
+                        {purchasesLoading ? "Loading purchases…" : "No store purchases on record."}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    purchases.map((purchase) => (
+                      <TableRow key={purchase.transactionId}>
+                        <TableCell>
+                          <Timestamp value={purchase.date} className="text-xs" />
+                        </TableCell>
+                        <TableCell>
+                          {/* Tebex only names packages that are still active, so an expired one shows a dash. */}
+                          <span className="text-xs">
+                            {purchase.packages.length === 0
+                              ? "—"
+                              : purchase.packages.map((pkg) => pkg.name).join(", ")}
+                          </span>
+                        </TableCell>
+                        {canSeeStore && (
+                          <TableCell>
+                            <span className="text-xs font-mono font-semibold text-foreground whitespace-nowrap">
+                              {purchase.amount === null ? "—" : formatMoney(purchase.amount, purchase.symbol)}
+                            </span>
+                          </TableCell>
+                        )}
+                        <TableCell className="hidden md:table-cell">
+                          <StorePaymentStatusBadge status={purchase.status} />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                  {/* filler rows keep the card height constant across pages */}
+                  {Array.from({ length: PURCHASES_PAGE_SIZE - (purchases.length === 0 ? 1 : purchases.length) }, (_, i) => (
+                    <TableRow key={`filler-${i}`} className="hover:bg-transparent">
+                      <TableCell colSpan={purchaseColumns}>&nbsp;</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {purchasesTotalPages > 1 && (
+                <>
+                  <Separator />
+                  <div className="px-5 py-3.5 flex items-center justify-between">
+                    <span className="text-xs font-mono text-muted-foreground">
+                      Showing {(purchasesPage - 1) * PURCHASES_PAGE_SIZE + 1}
+                      –{Math.min(purchasesPage * PURCHASES_PAGE_SIZE, purchasesTotal)} of {purchasesTotal}
+                    </span>
+                    <TablePager page={purchasesPage} totalPages={purchasesTotalPages} onPageChange={setPurchasesPage} />
+                  </div>
+                </>
+              )}
+            </Card>
+          )}
 
           {/* Recent actions */}
           <Card className="overflow-hidden">

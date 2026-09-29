@@ -21,6 +21,7 @@ import {TicketsTab} from "./tabs/TicketsTab";
 import {TicketDetail} from "./tabs/tickets/TicketDetail";
 import {ServerMetricsTab} from "./tabs/ServerMetricsTab";
 import {ServerGroupDetail} from "./tabs/serverMetrics/ServerGroupDetail";
+import {StoreTab} from "./tabs/StoreTab";
 import {usePlayerCounts} from "./hooks/usePlayerCounts";
 
 export default function App() {
@@ -119,6 +120,7 @@ export default function App() {
               <Route path="/motd" element={<MotdTab />} />
               <Route path="/server-metrics" element={<ServerMetricsTab />} />
               <Route path="/server-metrics/:group" element={<ServerGroupDetail />} />
+              <Route path="/store" element={<StoreTab />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </div>
