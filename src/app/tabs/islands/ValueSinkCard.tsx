@@ -5,6 +5,7 @@ import {cn} from "../../../lib/utils";
 import type {IslandValueSink} from "../../api/types";
 import {useIslandValueSink} from "../../hooks/useIslands";
 import {Badge} from "../../components/ui/badge";
+import {Button} from "../../components/ui/button";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "../../components/ui/card";
 import {Separator} from "../../components/ui/separator";
 import {Skeleton} from "../../components/ui/skeleton";
@@ -31,6 +32,20 @@ const OTHER_KEY = "other";
 const COMPACT = new Intl.NumberFormat(undefined, { notation: "compact", maximumFractionDigits: 1 });
 const DAY = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" });
 
+type ValueScale = "log" | "linear";
+
+/**
+ * Y-axis ticks for the log scale: zero, then powers of ten up to the first one that covers `max`.
+ * Every other power once there are more than six, so the labels don't crowd.
+ */
+function logTicks(max: number): number[] {
+  const top = Math.max(1, Math.ceil(Math.log10(Math.max(max, 1))));
+  const step = top > 6 ? 2 : 1;
+  const ticks = [0];
+  for (let power = top % step || step; power <= top; power += step) ticks.push(10 ** power);
+  return ticks;
+}
+
 /** `minecraft:iron_ingot` → "Iron Ingot". */
 function itemLabel(itemId: string): string {
   return titleCase(itemId.slice(itemId.lastIndexOf(":") + 1)) || itemId;
@@ -44,6 +59,7 @@ function percent(share: number): string {
 /** What an island's value sinks consumed over an adjustable time frame: value over time, then per item. */
 export function ValueSinkCard({ islandId }: { islandId: string }) {
   const [range, setRange] = useState<TimeRange>({ preset: "7d" });
+  const [scale, setScale] = useState<ValueScale>("log");
   // Resolved once per selection: a preset's "now" must not move on every render, or it would refetch.
   const { from, to } = useMemo(() => resolveTimeRange(range), [range]);
   const { data, loading, error } = useIslandValueSink(islandId, from, to);
@@ -70,7 +86,21 @@ export function ValueSinkCard({ islandId }: { islandId: string }) {
         </CardDescription>
       </CardHeader>
       <CardContent className={cn("transition-opacity", loading && data && "opacity-60")}>
-        {loading && !data ? <Skeleton className="h-[240px] w-full" /> : <ValueChart data={data} />}
+        <div className="flex items-center justify-end gap-1 mb-2">
+          <span className="text-[10px] font-mono text-muted-foreground mr-1">Value axis</span>
+          {(["log", "linear"] as const).map((option) => (
+            <Button
+              key={option}
+              size="xs"
+              variant={scale === option ? "secondary" : "ghost"}
+              aria-pressed={scale === option}
+              onClick={() => setScale(option)}
+            >
+              {option === "log" ? "Log" : "Linear"}
+            </Button>
+          ))}
+        </div>
+        {loading && !data ? <Skeleton className="h-[240px] w-full" /> : <ValueChart data={data} scale={scale} />}
       </CardContent>
       <Separator />
       <div className={cn("max-h-[360px] overflow-y-auto transition-opacity", loading && data && "opacity-60")}>
@@ -129,8 +159,12 @@ export function ValueSinkCard({ islandId }: { islandId: string }) {
   );
 }
 
-/** Contributed value per time bucket, stacked by item. */
-function ValueChart({ data }: { data: IslandValueSink | null }) {
+/**
+ * Contributed value per time bucket, one overlaid series per item. Not stacked, and on a log axis by
+ * default: items routinely differ by orders of magnitude, and on a stacked linear chart the smaller
+ * ones vanish under the largest whenever they spike together.
+ */
+function ValueChart({ data, scale }: { data: IslandValueSink | null; scale: ValueScale }) {
   if (!data || data.series.length === 0) {
     return <ChartEmpty />;
   }
@@ -151,6 +185,9 @@ function ValueChart({ data }: { data: IslandValueSink | null }) {
     return row;
   });
 
+  const max = Math.max(...points.flatMap((point) => keys.map((key) => point[key])));
+  const ticks = logTicks(max);
+
   const daily = data.bucketSeconds >= 86_400;
   const spansDays = points[points.length - 1].time - points[0].time > 86_400_000;
   const formatTick = (time: number) =>
@@ -164,7 +201,7 @@ function ValueChart({ data }: { data: IslandValueSink | null }) {
         <defs>
           {keys.map((key) => (
             <linearGradient key={key} id={`fill-sink-${key}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={`var(--color-${key})`} stopOpacity={0.35} />
+              <stop offset="5%" stopColor={`var(--color-${key})`} stopOpacity={0.25} />
               <stop offset="95%" stopColor={`var(--color-${key})`} stopOpacity={0.02} />
             </linearGradient>
           ))}
@@ -181,13 +218,27 @@ function ValueChart({ data }: { data: IslandValueSink | null }) {
           tickMargin={8}
           minTickGap={32}
         />
-        <YAxis
-          width={44}
-          tickLine={false}
-          axisLine={false}
-          allowDecimals={false}
-          tickFormatter={(value: number) => COMPACT.format(value)}
-        />
+        {scale === "log" ? (
+          <YAxis
+            width={44}
+            tickLine={false}
+            axisLine={false}
+            // Symmetric log: a plain log scale has no place for the zero-filled buckets. recharts
+            // resolves the name against d3-scale at runtime; its ScaleType union just doesn't list it.
+            scale={"symlog" as "log"}
+            domain={[0, ticks[ticks.length - 1]]}
+            ticks={ticks}
+            tickFormatter={(value: number) => COMPACT.format(value)}
+          />
+        ) : (
+          <YAxis
+            width={44}
+            tickLine={false}
+            axisLine={false}
+            allowDecimals={false}
+            tickFormatter={(value: number) => COMPACT.format(value)}
+          />
+        )}
         <ChartTooltip
           content={
             <ChartTooltipContent
@@ -201,7 +252,6 @@ function ValueChart({ data }: { data: IslandValueSink | null }) {
             key={key}
             dataKey={key}
             type="monotone"
-            stackId="value"
             stroke={`var(--color-${key})`}
             fill={`url(#fill-sink-${key})`}
             strokeWidth={2}
