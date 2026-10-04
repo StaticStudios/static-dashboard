@@ -243,7 +243,17 @@ function ValueChart({ data, scale }: { data: IslandValueSink | null; scale: Valu
           content={
             <ChartTooltipContent
               labelFormatter={(_, payload) => formatLabel((payload?.[0]?.payload as { time?: number } | undefined)?.time)}
-              formatter={(value, name) => tooltipFormatter(value, labels[String(name)] ?? String(name))}
+              // A custom formatter replaces the default row, colour marker included, so it is put back
+              // here: several items share a hover, and the name alone doesn't say which line is which.
+              formatter={(value, name) => (
+                <span className="flex w-full items-center gap-2">
+                  <span
+                    className="size-2 shrink-0 rounded-[2px]"
+                    style={{ backgroundColor: config[String(name)]?.color ?? OTHER_COLOR }}
+                  />
+                  {tooltipFormatter(value, labels[String(name)] ?? String(name))}
+                </span>
+              )}
             />
           }
         />
