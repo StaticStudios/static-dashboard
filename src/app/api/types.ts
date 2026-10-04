@@ -364,6 +364,30 @@ export interface IslandProfile {
   warps: GroupWarp[];
 }
 
+export interface IslandValueSinkItem {
+  itemId: string;
+  material: string | null;
+  amount: number;
+  contributedValue: number;
+}
+
+/**
+ * What an island's value sinks consumed over a time range. `items` is every consumed item, most
+ * valuable first. `series` is the same value over time in `bucketSeconds` steps, zero-filled, with
+ * the items in `seriesItemIds` broken out and the rest summed into `other`.
+ *
+ * `totalCreditedValue` is exact; item values are unrounded (the game rounds once per sink tick), so
+ * they only approximately add up to it.
+ */
+export interface IslandValueSink {
+  totalCreditedValue: number;
+  batchCount: number;
+  bucketSeconds: number;
+  items: IslandValueSinkItem[];
+  seriesItemIds: string[];
+  series: { time: string; byItem: Record<string, number>; other: number }[];
+}
+
 /** A row in the prison gang search. Owner fields are null if the owner has no player record. */
 export interface GangSummary {
   id: string;
