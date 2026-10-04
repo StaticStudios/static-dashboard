@@ -7,6 +7,7 @@ import {Timestamp} from "../../components/Timestamp";
 import {num, StatCard, StatRow} from "../../components/StatBlocks";
 import {MembersCard, SettingsCard, titleCase, WarpsCard} from "../../components/GroupCards";
 import {useIslandProfile} from "../../hooks/useIslands";
+import {ValueSinkCard} from "./ValueSinkCard";
 
 /** Display names for `island_upgrades` columns; unknown keys fall back to a prettified column name. */
 const UPGRADE_LABELS: Record<string, string> = {
@@ -142,6 +143,7 @@ export function IslandDetail() {
                 </div>
 
                 <WarpsCard warps={profile.warps} />
+                <ValueSinkCard islandId={islandId} />
               </>
             )}
           </div>
