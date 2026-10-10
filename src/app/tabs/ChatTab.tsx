@@ -12,7 +12,8 @@ import {GamemodeFilter} from "../components/GamemodeFilter";
 import {SenderMultiSelect} from "../components/SenderMultiSelect";
 import {DateRangeFilter} from "../components/DateRangeFilter";
 import {ChatMessageRow} from "../components/ChatMessageRow";
-import {useChatFeed} from "../hooks/useChatFeed";
+import {matchesChatSearch, useChatFeed} from "../hooks/useChatFeed";
+import {useDebounced} from "../hooks/useDebounced";
 import {useServerGroups} from "../hooks/useServerGroups";
 import type {ChatLogEntry} from "../api/types";
 
@@ -95,16 +96,21 @@ function ChatFeedView({
   const gamemodes = selectedFilters.filter((f) => f !== "dm");
   const includeDms = selectedFilters.includes("dm");
 
+  // The API runs the search, so it covers the whole history instead of only the loaded pages.
+  const debouncedSearch = useDebounced(search.trim(), 250);
+
   const {messages, loading, loadingMore, hasMore, hasNewer, loadOlder, loadNewer, anchored} = useChatFeed({
     senders: selectedSenders.length ? selectedSenders : undefined,
     serverGroups: gamemodes.length ? gamemodes : undefined,
     includeDms,
     from: dateRange?.from ? startOfDay(dateRange.from).getTime() : undefined,
     to: dateRange?.to ? endOfDay(dateRange.to).getTime() : undefined,
+    search: debouncedSearch || undefined,
     anchorId: anchorMessage?.id,
   });
 
-  const filtered = messages.filter((m) => m.content.toLowerCase().includes(search.toLowerCase()));
+  // Also narrows the loaded messages at once, while the debounced request is still on its way.
+  const filtered = messages.filter((m) => matchesChatSearch(m.content, search));
 
   const wasAtBottomRef = useRef(!anchored);
   const isPrependingRef = useRef(false);
@@ -125,7 +131,7 @@ function ChatFeedView({
   // Reset to "follow the bottom" whenever the active filters change, since the feed resets too.
   useEffect(() => {
     if (!anchored) wasAtBottomRef.current = true;
-  }, [selectedSenders, selectedFilters, dateRange, anchored]);
+  }, [selectedSenders, selectedFilters, dateRange, debouncedSearch, anchored]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -180,7 +186,7 @@ function ChatFeedView({
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center flex-wrap">
           <SearchInput
             className="flex-1"
-            placeholder="Filter by message content..."
+            placeholder="Search message content..."
             value={search}
             onChange={setSearch}
             icon={<Search size={14} />}

@@ -6,7 +6,6 @@ import {cn, formatRank, initials, rankAtLeast, skinFaceUrl, type StaffPosition} 
 import {Separator} from "./ui/separator";
 import {PlayerHead} from "./PlayerHead";
 import {usePunishments} from "../hooks/usePunishments";
-import {useChatMessageCount} from "../hooks/useChatMessageCount";
 import {useMe} from "../hooks/useMe";
 import type {TabKey} from "../types";
 
@@ -41,7 +40,6 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { totalElements: activePunishments } = usePunishments({ page: 1, limit: 1, status: "active" });
-  const chatCount = useChatMessageCount();
   const { me } = useMe();
   const meHeadUrl = skinFaceUrl(me?.skinTextureValue);
 
@@ -49,7 +47,7 @@ export function Sidebar({ onClose }: { onClose?: () => void }) {
     dashboard:   null,
     players:     null,
     punishments: activePunishments,
-    chat:        chatCount ?? 0,
+    chat:        null,
     tickets:     null,
     motd:        null,
     statistics:  null,

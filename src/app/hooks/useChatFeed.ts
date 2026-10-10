@@ -10,8 +10,25 @@ export interface ChatFeedFilters {
   to?: number;
   limit?: number;
   includeDms?: boolean;
+  /** Words the message content must contain, in order; matched by the API across all history. */
+  search?: string;
   /** When set, the feed seeds around this message id and supports paging in both directions. */
   anchorId?: string;
+}
+
+/**
+ * Mirrors the API's search: every word of `search` must appear in `content`, in that order, with
+ * anything in between ("i apple" finds "i like apples"). Case-insensitive.
+ */
+export function matchesChatSearch(content: string, search: string): boolean {
+  const haystack = content.toLowerCase();
+  let from = 0;
+  for (const word of search.toLowerCase().split(/\s+/).filter(Boolean)) {
+    const at = haystack.indexOf(word, from);
+    if (at === -1) return false;
+    from = at + word.length;
+  }
+  return true;
 }
 
 function matchesFilters(m: ChatLogEntry, filters: ChatFeedFilters): boolean {
@@ -26,6 +43,7 @@ function matchesFilters(m: ChatLogEntry, filters: ChatFeedFilters): boolean {
   const ts = new Date(m.timestamp).getTime();
   if (filters.from != null && ts < filters.from) return false;
   if (filters.to != null && ts > filters.to) return false;
+  if (filters.search && !matchesChatSearch(m.content, filters.search)) return false;
   return true;
 }
 

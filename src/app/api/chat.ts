@@ -9,6 +9,7 @@ export function fetchChatHistory(opts: {
   from?: number;
   to?: number;
   includeDms?: boolean;
+  search?: string;
 } = {}) {
   return apiFetch<Page<ChatLogEntry>>("/api/v1/internal/chatlogs/chat", {
     page: opts.page,
@@ -18,6 +19,7 @@ export function fetchChatHistory(opts: {
     from: opts.from,
     to: opts.to,
     includeDms: opts.includeDms,
+    search: opts.search,
   });
 }
 
@@ -31,6 +33,7 @@ export function fetchChatCursor(opts: {
   from?: number;
   to?: number;
   includeDms?: boolean;
+  search?: string;
 }) {
   return apiFetch<CursorPage<ChatLogEntry>>("/api/v1/internal/chatlogs/chat/cursor", {
     anchorId: opts.anchorId,
@@ -42,6 +45,7 @@ export function fetchChatCursor(opts: {
     from: opts.from,
     to: opts.to,
     includeDms: opts.includeDms,
+    search: opts.search,
   });
 }
 
