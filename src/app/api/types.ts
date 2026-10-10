@@ -305,7 +305,15 @@ export interface PlayerProfile {
   firstEverJoined: string | null;
   lastSeen: string | null;
   mcVersion: string | null;
-  playtime: { skyblock: number; prison: number; hub: number; total: number };
+  /** Seconds. The plain fields include AFK time; the `*Active` ones exclude it. */
+  playtime: {
+    skyblock: number;
+    prison: number;
+    hub: number;
+    total: number;
+    skyblockActive: number;
+    prisonActive: number;
+  };
   skyblock: {
     money: number;
     prestigePoints: number;

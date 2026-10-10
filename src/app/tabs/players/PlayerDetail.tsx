@@ -31,6 +31,7 @@ import {Separator} from "../../components/ui/separator";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "../../components/ui/table";
 import {Collapsible, CollapsibleContent, CollapsibleTrigger} from "../../components/ui/collapsible";
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from "../../components/ui/dialog";
+import {Tooltip, TooltipContent, TooltipTrigger} from "../../components/ui/tooltip";
 import {FilterSelect} from "../../components/FilterSelect";
 import {MultiSelectFilter} from "../../components/MultiSelectFilter";
 import {SearchInput} from "../../components/SearchInput";
@@ -86,6 +87,32 @@ function formatPlaytime(seconds: number): string {
   const m = Math.floor((seconds % 3600) / 60);
   if (h === 0) return `${m}m`;
   return `${h}h ${m}m`;
+}
+
+/** A gamemode's AFK-excluded playtime, with the total / AFK / active breakdown on hover. */
+function PlaytimeValue({ active, total }: { active: number; total: number }) {
+  const rows = [
+    ["Total", total],
+    ["AFK", Math.max(0, total - active)],
+    ["Total − AFK", active],
+  ] as const;
+  return (
+    <Tooltip delayDuration={300}>
+      <TooltipTrigger asChild>
+        <span className="cursor-help">{formatPlaytime(active)}</span>
+      </TooltipTrigger>
+      <TooltipContent sideOffset={6}>
+        <div className="grid grid-cols-[auto_auto] gap-x-4 gap-y-0.5">
+          {rows.map(([label, seconds]) => (
+            <Fragment key={label}>
+              <span className="text-muted-foreground">{label}</span>
+              <span className="text-right tabular-nums">{formatPlaytime(seconds)}</span>
+            </Fragment>
+          ))}
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  );
 }
 
 /** Mine ranks are lettered A-Z (rank 0 = A), mirroring PrisonMineRankManager.getCapitalLetterForRank. */
@@ -778,7 +805,7 @@ export function PlayerDetail() {
                   />
                   {profile?.skyblock ? (
                     <>
-                      <StatRow label="Playtime" value={formatPlaytime(profile.playtime.skyblock)} />
+                      <StatRow label="Playtime" value={<PlaytimeValue active={profile.playtime.skyblockActive} total={profile.playtime.skyblock} />} />
                       <StatRow label="Money" value={num(profile.skyblock.money)} />
                       <StatRow label="Prestige Points" value={num(profile.skyblock.prestigePoints)} />
                       <StatRow label="Dungeon Shards" value={num(profile.skyblock.dungeonShards)} />
@@ -829,7 +856,7 @@ export function PlayerDetail() {
                   />
                   {profile?.prison ? (
                     <>
-                      <StatRow label="Playtime" value={formatPlaytime(profile.playtime.prison)} />
+                      <StatRow label="Playtime" value={<PlaytimeValue active={profile.playtime.prisonActive} total={profile.playtime.prison} />} />
                       <StatRow label="Money" value={num(profile.prison.money)} />
                       <StatRow label="Tokens" value={num(profile.prison.tokens)} />
                       <StatRow label="Prestige Points" value={num(profile.prison.prestigePoints)} />
