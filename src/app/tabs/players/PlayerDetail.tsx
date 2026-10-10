@@ -94,7 +94,7 @@ function PlaytimeValue({ active, total }: { active: number; total: number }) {
   const rows = [
     ["Total", total],
     ["AFK", Math.max(0, total - active)],
-    ["Total − AFK", active],
+    ["Active", active],
   ] as const;
   return (
     <Tooltip delayDuration={300}>
