@@ -687,3 +687,33 @@ export interface ProfilerActionResponse {
   /** The live viewer link, for an OPENED live action. */
   url: string | null;
 }
+
+export interface AdvertisementStatistics {
+  days: number;
+  from: string;
+  through: string;
+  gamemode: string;
+  availableGamemodes: string[];
+  unavailableGamemodes: string[];
+  lookupStatus: "ready" | "unconfigured" | "unavailable";
+  lastScannedAt: string | null;
+  attributedPlayers: number;
+  unmatchedPlayers: number;
+  pendingPlayers: number;
+  advertisements: Advertisement[];
+  series: GroupedStatPoint[];
+}
+
+export interface Advertisement {
+  code: string;
+  videoUrl: string;
+  title: string;
+  publishedAt: string;
+  players: number;
+  lifetimePlayers: number;
+  byGamemode: Record<string, number>;
+  firstAttributionAt: string | null;
+  lastAttributionAt: string | null;
+  /** Sparse UTC calendar days; absent days are zero. */
+  series: StatPoint[];
+}
