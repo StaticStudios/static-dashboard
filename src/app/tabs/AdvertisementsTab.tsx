@@ -1,5 +1,5 @@
 import {useState} from "react";
-import {Link, Navigate, useSearchParams} from "react-router";
+import {Navigate, useNavigate, useSearchParams} from "react-router";
 import {Area, AreaChart, CartesianGrid, ReferenceLine, XAxis, YAxis} from "recharts";
 import {ArrowLeft, ExternalLink, Megaphone, Search} from "lucide-react";
 import {cn, rankAtLeast} from "../../lib/utils";
@@ -48,6 +48,7 @@ export function AdvertisementsTab() {
 }
 
 function Advertisements() {
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("players");
@@ -94,14 +95,17 @@ function Advertisements() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-1">
-          <Link to="/statistics" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mb-2">
-            <ArrowLeft size={12} /> Statistics
-          </Link>
-          <h1 className="text-xl font-bold font-display tracking-tight flex items-center gap-2">
-            <Megaphone size={20} className="text-primary" /> Advertisements
-          </h1>
-          <p className="text-sm text-muted-foreground">See which videos bring new players to each gamemode.</p>
+        <div className="flex items-center gap-3 min-w-0">
+          <Button variant="outline" size="icon" onClick={() => navigate("/statistics")}>
+            <ArrowLeft size={15} />
+          </Button>
+          <div className="w-9 h-9 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center text-primary shrink-0">
+            <Megaphone size={16} />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold font-display tracking-tight text-foreground leading-none">Advertisements</h1>
+            <p className="text-[11px] font-mono text-muted-foreground mt-1 truncate">See which videos bring new players to each gamemode.</p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <FilterSelect value={gamemode} onValueChange={(value) => updateParam("gamemode", value)} options={GAMEMODES} className="w-[170px]" />

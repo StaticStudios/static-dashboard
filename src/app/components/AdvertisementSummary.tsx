@@ -1,4 +1,4 @@
-import {ExternalLink, Megaphone} from "lucide-react";
+import {ChevronRight, Megaphone} from "lucide-react";
 import {Link} from "react-router";
 import {useAdvertisementStatistics} from "../hooks/useAdvertisements";
 import {useAdvertisementTimeZone} from "../hooks/useAdvertisementTimeZone";
@@ -24,8 +24,8 @@ export function AdvertisementSummary({ days }: { days: number }) {
           </CardDescription>
         </div>
         <Button asChild variant="outline" size="sm">
-          <Link to={`/statistics/advertisements?days=${days}&timeZone=${encodeURIComponent(timeZone)}`} target="_blank" rel="noopener noreferrer">
-            View all advertisements <ExternalLink size={13} />
+          <Link to={`/statistics/advertisements?days=${days}&timeZone=${encodeURIComponent(timeZone)}`}>
+            View all advertisements <ChevronRight size={13} />
           </Link>
         </Button>
       </CardHeader>
@@ -42,8 +42,6 @@ export function AdvertisementSummary({ days }: { days: number }) {
               <Link
                 key={`${advertisement.gamemode}:${advertisement.code}`}
                 to={`/statistics/advertisements?days=${days}&timeZone=${encodeURIComponent(timeZone)}&adGamemode=${encodeURIComponent(advertisement.gamemode)}&code=${encodeURIComponent(advertisement.code)}`}
-                target="_blank"
-                rel="noopener noreferrer"
                 className="rounded-lg border border-border bg-muted/20 p-3 hover:bg-muted/40 transition-colors min-w-0"
               >
                 <p className="text-[10px] text-muted-foreground font-mono">#{index + 1} · {gamemodeStyle(advertisement.gamemode).label} · {advertisement.code}</p>

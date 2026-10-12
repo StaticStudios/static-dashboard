@@ -3,8 +3,8 @@
 Rewrite of the StaticStudios Dashboard
 
 Statistics includes the three advertisements with the most new player attributions in its
-selected window. **View all advertisements** opens `/statistics/advertisements` in a new
-browser tab. ADMIN+ can filter by Skyblock, Prison, or all gamemodes and by 7, 30, 90, or
+selected window. **View all advertisements** opens `/statistics/advertisements` in the
+current view. ADMIN+ can filter by Skyblock, Prison, or all gamemodes and by 7, 30, 90, or
 365 days; gamemode, window, time zone, and selected gamemode/code pair are retained in the URL.
 The `adGamemode` parameter identifies the selected row independently of the gamemode filter.
 
