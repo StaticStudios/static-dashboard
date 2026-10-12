@@ -60,11 +60,14 @@ function Advertisements() {
   const timeZone = isValidTimeZone(requestedZone) ? requestedZone : preference.timeZone;
   const { data, loading, error, reload } = useAdvertisementStatistics(days, gamemode, timeZone);
   const advertisements = data?.advertisements ?? [];
-  const selected = advertisements.find((advertisement) => advertisement.code === params.get("code")) ?? advertisements[0];
+  const selectedMode = params.get("adGamemode") ?? (gamemode !== "all" ? gamemode : null);
+  const matches = advertisements.filter((advertisement) => advertisement.code === params.get("code")
+    && (!selectedMode || advertisement.gamemode === selectedMode));
+  const selected = matches.length === 1 ? matches[0] : advertisements[0];
   const leading = advertisements.find((advertisement) => advertisement.players > 0);
   const term = search.trim().toLowerCase();
   const filtered = advertisements
-    .filter((advertisement) => `${advertisement.title} ${advertisement.code}`.toLowerCase().includes(term))
+    .filter((advertisement) => `${advertisement.title} ${advertisement.gamemode} ${advertisement.code}`.toLowerCase().includes(term))
     .sort((a, b) => {
       if (sort === "newest") return b.publishedAt.localeCompare(a.publishedAt) || a.code.localeCompare(b.code);
       if (sort === "lifetime") return b.lifetimePlayers - a.lifetimePlayers || a.code.localeCompare(b.code);
@@ -75,6 +78,17 @@ function Advertisements() {
     const next = new URLSearchParams(params);
     next.set(key, value);
     setParams(next, { replace: true });
+  }
+
+  function selectAdvertisement(advertisement: Advertisement) {
+    const next = new URLSearchParams(params);
+    next.set("code", advertisement.code);
+    next.set("adGamemode", advertisement.gamemode);
+    setParams(next, { replace: true });
+  }
+
+  function isSelected(advertisement: Advertisement) {
+    return selected?.code === advertisement.code && selected?.gamemode === advertisement.gamemode;
   }
 
   return (
@@ -101,6 +115,7 @@ function Advertisements() {
 
       <p className="text-xs text-muted-foreground max-w-4xl">
         Counts include new players who entered an ad's code shortly after joining, even if the code had expired.
+        Codes are tracked separately for each gamemode.
         Each player counts once per gamemode, so totals across gamemodes may include the same player more than once.
       </p>
 
@@ -114,7 +129,7 @@ function Advertisements() {
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
             <Metric label="New players" value={data.attributedPlayers.toLocaleString()} detail="From tracked ads during this period" />
             <Metric label="Ads with new players" value={String(advertisements.filter((advertisement) => advertisement.players > 0).length)} detail={`${advertisements.length} ads tracked`} />
-            <Metric label="Top advertisement" value={leading?.code ?? "—"} detail={leading ? `${leading.players.toLocaleString()} new players during this period` : "No new players during this period"} />
+            <Metric label="Top advertisement" value={leading?.code ?? "—"} detail={leading ? `${gamemodeStyle(leading.gamemode).label} · ${leading.players.toLocaleString()} new players during this period` : "No new players during this period"} />
             <Metric label="All-time new players" value={advertisements.reduce((sum, advertisement) => sum + advertisement.lifetimePlayers, 0).toLocaleString()} detail="For the selected gamemode" />
           </div>
           <AdvertisementNotice data={data} />
@@ -170,9 +185,7 @@ function Advertisements() {
                 <TableRow>
                   <TableHead>Advertisement</TableHead>
                   <TableHead className="text-right">New players</TableHead>
-                  {data.availableGamemodes.filter((group) => gamemode === "all").map((group) => (
-                    <TableHead key={group} className="text-right">{gamemodeStyle(group).label}</TableHead>
-                  ))}
+                  {gamemode === "all" && <TableHead>Gamemode</TableHead>}
                   <TableHead className="text-right">Share of new players</TableHead>
                   <TableHead className="text-right">All time</TableHead>
                   <TableHead>Uploaded</TableHead>
@@ -181,13 +194,13 @@ function Advertisements() {
               </TableHeader>
               <TableBody>
                 {filtered.map((advertisement) => (
-                  <TableRow key={advertisement.code} className={cn(selected?.code === advertisement.code && "bg-primary/5")}>
+                  <TableRow key={`${advertisement.gamemode}:${advertisement.code}`} className={cn(isSelected(advertisement) && "bg-primary/5")}>
                     <TableCell className="min-w-[220px] max-w-[400px]">
                       <button
                         type="button"
-                        aria-label={`View trend for ${advertisement.code}`}
-                        aria-pressed={selected?.code === advertisement.code}
-                        onClick={() => updateParam("code", advertisement.code)}
+                        aria-label={`View trend for ${gamemodeStyle(advertisement.gamemode).label} code ${advertisement.code}`}
+                        aria-pressed={isSelected(advertisement)}
+                        onClick={() => selectAdvertisement(advertisement)}
                         className="text-left w-full cursor-pointer hover:text-primary focus-visible:outline-primary rounded-sm"
                       >
                         <span className="block text-sm truncate" title={advertisement.title}>{advertisement.title}</span>
@@ -195,9 +208,7 @@ function Advertisements() {
                       </button>
                     </TableCell>
                     <TableCell className="text-right font-mono font-semibold">{advertisement.players.toLocaleString()}</TableCell>
-                    {data.availableGamemodes.filter((group) => gamemode === "all").map((group) => (
-                      <TableCell key={group} className="text-right font-mono text-muted-foreground">{(advertisement.byGamemode[group] ?? 0).toLocaleString()}</TableCell>
-                    ))}
+                    {gamemode === "all" && <TableCell className="text-muted-foreground">{gamemodeStyle(advertisement.gamemode).label}</TableCell>}
                     <TableCell className="text-right font-mono text-muted-foreground">
                       {data.attributedPlayers > 0 ? `${(advertisement.players / data.attributedPlayers * 100).toFixed(1)}%` : "—"}
                     </TableCell>
@@ -259,7 +270,7 @@ function AdvertisementTrend({ advertisement, data }: { advertisement: Advertisem
     <div className="space-y-3">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-xs font-mono text-primary">{advertisement.code}</p>
+          <p className="text-xs font-mono text-primary">{gamemodeStyle(advertisement.gamemode).label} · {advertisement.code}</p>
           <p className="text-sm truncate" title={advertisement.title}>{advertisement.title}</p>
           <p className="text-[10px] text-muted-foreground mt-1">Uploaded <Timestamp value={advertisement.publishedAt} timeZone={data.timeZone} /></p>
         </div>

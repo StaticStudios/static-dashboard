@@ -706,13 +706,13 @@ export interface AdvertisementStatistics {
 }
 
 export interface Advertisement {
+  gamemode: string;
   code: string;
   videoUrl: string;
   title: string;
   publishedAt: string;
   players: number;
   lifetimePlayers: number;
-  byGamemode: Record<string, number>;
   firstAttributionAt: string | null;
   lastAttributionAt: string | null;
   /** Sparse calendar days in the selected time zone; absent days are zero. */

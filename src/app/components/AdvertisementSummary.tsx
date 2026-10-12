@@ -40,13 +40,13 @@ export function AdvertisementSummary({ days }: { days: number }) {
           <div className="grid gap-3 md:grid-cols-3">
             {top.map((advertisement, index) => (
               <Link
-                key={advertisement.code}
-                to={`/statistics/advertisements?days=${days}&timeZone=${encodeURIComponent(timeZone)}&code=${encodeURIComponent(advertisement.code)}`}
+                key={`${advertisement.gamemode}:${advertisement.code}`}
+                to={`/statistics/advertisements?days=${days}&timeZone=${encodeURIComponent(timeZone)}&adGamemode=${encodeURIComponent(advertisement.gamemode)}&code=${encodeURIComponent(advertisement.code)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="rounded-lg border border-border bg-muted/20 p-3 hover:bg-muted/40 transition-colors min-w-0"
               >
-                <p className="text-[10px] text-muted-foreground font-mono">#{index + 1} · {advertisement.code}</p>
+                <p className="text-[10px] text-muted-foreground font-mono">#{index + 1} · {gamemodeStyle(advertisement.gamemode).label} · {advertisement.code}</p>
                 <p className="text-sm text-foreground truncate mt-1" title={advertisement.title}>{advertisement.title}</p>
                 <p className="text-xl font-bold font-mono text-primary mt-2">
                   {advertisement.players.toLocaleString()} <span className="text-xs text-muted-foreground font-normal">new players</span>
