@@ -2,7 +2,7 @@ import {useEffect, useState} from "react";
 import {fetchAdvertisementStatistics} from "../api/advertisements";
 import type {AdvertisementStatistics} from "../api/types";
 
-export function useAdvertisementStatistics(days: number, gamemode = "all") {
+export function useAdvertisementStatistics(days: number, gamemode: string, timeZone: string) {
   const [data, setData] = useState<AdvertisementStatistics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -13,7 +13,7 @@ export function useAdvertisementStatistics(days: number, gamemode = "all") {
     setLoading(true);
     setData(null);
     setError(null);
-    fetchAdvertisementStatistics(days, gamemode)
+    fetchAdvertisementStatistics(days, gamemode, timeZone)
       .then((result) => {
         if (!cancelled) setData(result);
       })
@@ -26,7 +26,7 @@ export function useAdvertisementStatistics(days: number, gamemode = "all") {
     return () => {
       cancelled = true;
     };
-  }, [days, gamemode, revision]);
+  }, [days, gamemode, timeZone, revision]);
 
   return { data, loading, error, reload: () => setRevision((value) => value + 1) };
 }

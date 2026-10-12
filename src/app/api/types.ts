@@ -693,6 +693,7 @@ export interface AdvertisementStatistics {
   from: string;
   through: string;
   gamemode: string;
+  timeZone: string;
   availableGamemodes: string[];
   unavailableGamemodes: string[];
   lookupStatus: "ready" | "unconfigured" | "unavailable";
@@ -714,6 +715,6 @@ export interface Advertisement {
   byGamemode: Record<string, number>;
   firstAttributionAt: string | null;
   lastAttributionAt: string | null;
-  /** Sparse UTC calendar days; absent days are zero. */
+  /** Sparse calendar days in the selected time zone; absent days are zero. */
   series: StatPoint[];
 }

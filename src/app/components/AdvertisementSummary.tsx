@@ -1,6 +1,8 @@
 import {ExternalLink, Megaphone} from "lucide-react";
 import {Link} from "react-router";
 import {useAdvertisementStatistics} from "../hooks/useAdvertisements";
+import {useAdvertisementTimeZone} from "../hooks/useAdvertisementTimeZone";
+import {gamemodeStyle} from "../../lib/gamemodes";
 import type {AdvertisementStatistics} from "../api/types";
 import {Button} from "./ui/button";
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "./ui/card";
@@ -8,7 +10,8 @@ import {Skeleton} from "./ui/skeleton";
 import {Timestamp} from "./Timestamp";
 
 export function AdvertisementSummary({ days }: { days: number }) {
-  const { data, loading, error, reload } = useAdvertisementStatistics(days);
+  const { timeZone } = useAdvertisementTimeZone();
+  const { data, loading, error, reload } = useAdvertisementStatistics(days, "all", timeZone);
   const top = data?.advertisements.filter((advertisement) => advertisement.players > 0).slice(0, 3) ?? [];
 
   return (
@@ -17,12 +20,12 @@ export function AdvertisementSummary({ days }: { days: number }) {
         <div className="space-y-1">
           <CardTitle className="flex items-center gap-2"><Megaphone size={14} className="text-primary" />Advertisements</CardTitle>
           <CardDescription>
-            {data ? data.attributedPlayers.toLocaleString() : "…"} new player attributions from linked videos in the last {days} days
+            {data ? data.attributedPlayers.toLocaleString() : "…"} new players from ads over the past {days} days · {timeZone}
           </CardDescription>
         </div>
         <Button asChild variant="outline" size="sm">
-          <Link to={`/statistics/advertisements?days=${days}`} target="_blank" rel="noopener noreferrer">
-            Explore advertisements <ExternalLink size={13} />
+          <Link to={`/statistics/advertisements?days=${days}&timeZone=${encodeURIComponent(timeZone)}`} target="_blank" rel="noopener noreferrer">
+            View all advertisements <ExternalLink size={13} />
           </Link>
         </Button>
       </CardHeader>
@@ -32,13 +35,13 @@ export function AdvertisementSummary({ days }: { days: number }) {
             {error}<Button variant="outline" size="sm" onClick={reload}>Retry</Button>
           </div>
         ) : top.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No linked advertisements have new player attributions in this window.</p>
+          <p className="text-sm text-muted-foreground">No new players from tracked ads during this period.</p>
         ) : (
           <div className="grid gap-3 md:grid-cols-3">
             {top.map((advertisement, index) => (
               <Link
                 key={advertisement.code}
-                to={`/statistics/advertisements?days=${days}&code=${encodeURIComponent(advertisement.code)}`}
+                to={`/statistics/advertisements?days=${days}&timeZone=${encodeURIComponent(timeZone)}&code=${encodeURIComponent(advertisement.code)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="rounded-lg border border-border bg-muted/20 p-3 hover:bg-muted/40 transition-colors min-w-0"
@@ -62,17 +65,19 @@ export function AdvertisementNotice({ data }: { data: AdvertisementStatistics })
   return (
     <div className="space-y-1 text-xs text-muted-foreground">
       {data.unavailableGamemodes.length > 0 && (
-        <p>Tracking is not available for {data.unavailableGamemodes.join(", ")}. Its counts are excluded.</p>
+        <p>Ad tracking hasn't been set up for {data.unavailableGamemodes.map((group) => gamemodeStyle(group).label).join(", ")} yet.</p>
       )}
-      {data.lookupStatus === "unconfigured" && <p>Automatic YouTube matching is not configured yet. Cached advertisements are still shown.</p>}
-      {data.lookupStatus === "unavailable" && <p>YouTube matching is temporarily unavailable. Pending codes will be retried.</p>}
+      {data.lookupStatus === "unconfigured" && <p>Automatic video matching hasn't been set up yet. Previously matched ads are shown.</p>}
+      {data.lookupStatus === "unavailable" && <p>We couldn't check YouTube for new ads. Previously matched ads are shown, and new codes will be checked again.</p>}
       {(data.unmatchedPlayers > 0 || data.pendingPlayers > 0) && (
         <p>
-          Excluded from advertisement rankings: {data.unmatchedPlayers.toLocaleString()} attributions with no matching video
-          {data.pendingPlayers > 0 && `, ${data.pendingPlayers.toLocaleString()} awaiting a video lookup`}.
+          Not included in these totals: {[
+            data.unmatchedPlayers > 0 ? `${data.unmatchedPlayers.toLocaleString()} new players whose codes have no matching video` : null,
+            data.pendingPlayers > 0 ? `${data.pendingPlayers.toLocaleString()} new players whose codes are still being matched` : null,
+          ].filter(Boolean).join("; ")}.
         </p>
       )}
-      {data.lastScannedAt && <p>Channel last checked <Timestamp value={data.lastScannedAt} />.</p>}
+      {data.lastScannedAt && <p>Last checked for new videos: <Timestamp value={data.lastScannedAt} timeZone={data.timeZone} />.</p>}
     </div>
   );
 }

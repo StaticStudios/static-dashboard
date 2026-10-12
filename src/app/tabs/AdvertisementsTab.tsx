@@ -6,8 +6,11 @@ import {cn, rankAtLeast} from "../../lib/utils";
 import {gamemodeStyle} from "../../lib/gamemodes";
 import {useMe} from "../hooks/useMe";
 import {useAdvertisementStatistics} from "../hooks/useAdvertisements";
+import {useAdvertisementTimeZone} from "../hooks/useAdvertisementTimeZone";
+import {advertisementDate, isValidTimeZone} from "../lib/advertisementTimeZone";
 import type {Advertisement, AdvertisementStatistics} from "../api/types";
 import {AdvertisementNotice} from "../components/AdvertisementSummary";
+import {AdvertisementTimeZonePicker} from "../components/AdvertisementTimeZonePicker";
 import {FilterSelect} from "../components/FilterSelect";
 import {ChartEmpty, shortDate, tooltipFormatter} from "../components/StatCharts";
 import {Timestamp} from "../components/Timestamp";
@@ -52,7 +55,10 @@ function Advertisements() {
   const days = Number(WINDOWS.some((option) => option.value === daysValue) ? daysValue : "30");
   const modeValue = params.get("gamemode") ?? "all";
   const gamemode = GAMEMODES.some((option) => option.value === modeValue) ? modeValue : "all";
-  const { data, loading, error, reload } = useAdvertisementStatistics(days, gamemode);
+  const preference = useAdvertisementTimeZone();
+  const requestedZone = params.get("timeZone");
+  const timeZone = isValidTimeZone(requestedZone) ? requestedZone : preference.timeZone;
+  const { data, loading, error, reload } = useAdvertisementStatistics(days, gamemode, timeZone);
   const advertisements = data?.advertisements ?? [];
   const selected = advertisements.find((advertisement) => advertisement.code === params.get("code")) ?? advertisements[0];
   const leading = advertisements.find((advertisement) => advertisement.players > 0);
@@ -86,13 +92,16 @@ function Advertisements() {
         <div className="flex flex-wrap gap-2">
           <FilterSelect value={gamemode} onValueChange={(value) => updateParam("gamemode", value)} options={GAMEMODES} className="w-[170px]" />
           <FilterSelect value={String(days)} onValueChange={(value) => updateParam("days", value)} options={WINDOWS} className="w-[160px]" />
+          <AdvertisementTimeZonePicker value={timeZone} onChange={(value) => {
+            preference.selectTimeZone(value);
+            updateParam("timeZone", value);
+          }} />
         </div>
       </div>
 
       <p className="text-xs text-muted-foreground max-w-4xl">
-        These are first-code attributions recorded by the game, including attempts at expired codes. Each player counts once per
-        gamemode; all-gamemode totals can include the same player twice. Counts do not measure every viewer who joins.
-        Rankings and charts use the selected UTC date window; lifetime counts use the selected gamemode.
+        Counts include new players who entered an ad's code shortly after joining, even if the code had expired.
+        Each player counts once per gamemode, so totals across gamemodes may include the same player more than once.
       </p>
 
       {error && (
@@ -103,24 +112,24 @@ function Advertisements() {
       {loading ? <Skeleton className="h-24 w-full" /> : data && (
         <>
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-            <Metric label="New player attributions" value={data.attributedPlayers.toLocaleString()} detail="From linked advertisements" />
-            <Metric label="Ads bringing players" value={String(advertisements.filter((advertisement) => advertisement.players > 0).length)} detail={`${advertisements.length} cached codes`} />
-            <Metric label="Leading advertisement" value={leading?.code ?? "—"} detail={leading ? `${leading.players.toLocaleString()} new players in this window` : "No attributed players in this window"} />
-            <Metric label="Lifetime attributions" value={advertisements.reduce((sum, advertisement) => sum + advertisement.lifetimePlayers, 0).toLocaleString()} detail="Linked ads · selected gamemode" />
+            <Metric label="New players" value={data.attributedPlayers.toLocaleString()} detail="From tracked ads during this period" />
+            <Metric label="Ads with new players" value={String(advertisements.filter((advertisement) => advertisement.players > 0).length)} detail={`${advertisements.length} ads tracked`} />
+            <Metric label="Top advertisement" value={leading?.code ?? "—"} detail={leading ? `${leading.players.toLocaleString()} new players during this period` : "No new players during this period"} />
+            <Metric label="All-time new players" value={advertisements.reduce((sum, advertisement) => sum + advertisement.lifetimePlayers, 0).toLocaleString()} detail="For the selected gamemode" />
           </div>
           <AdvertisementNotice data={data} />
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             <Card>
               <CardHeader>
                 <CardTitle>New players from advertisements</CardTitle>
-                <CardDescription>Daily attributions by gamemode · UTC</CardDescription>
+                <CardDescription>New players each day by gamemode · {timeZone}</CardDescription>
               </CardHeader>
               <CardContent><OverviewChart data={data} /></CardContent>
             </Card>
             <Card>
               <CardHeader>
                 <CardTitle>Advertisement trend</CardTitle>
-                <CardDescription>Select a code below to inspect its daily performance.</CardDescription>
+                <CardDescription>Select an advertisement below to see its trend · {timeZone}</CardDescription>
               </CardHeader>
               <CardContent>
                 {selected ? <AdvertisementTrend advertisement={selected} data={data} /> : <ChartEmpty />}
@@ -135,11 +144,11 @@ function Advertisements() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <CardTitle>Advertisement performance</CardTitle>
-              <CardDescription className="mt-1">Codes with no matching video are excluded. Video links open in a new tab.</CardDescription>
+              <CardDescription className="mt-1">Compare the new players each ad brings in. Select an ad to view its trend.</CardDescription>
             </div>
             <FilterSelect value={sort} onValueChange={setSort} options={[
               { value: "players", label: "Most new players" },
-              { value: "lifetime", label: "Most lifetime players" },
+              { value: "lifetime", label: "Most players all time" },
               { value: "newest", label: "Newest uploads" },
             ]} className="w-[190px]" />
           </div>
@@ -153,7 +162,7 @@ function Advertisements() {
             <p className="text-sm text-muted-foreground">Advertisement statistics are unavailable.</p>
           ) : filtered.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              {advertisements.length > 0 ? "No advertisements match your search." : "No advertisements have been linked yet. Matching starts when a new player's code is recorded."}
+              {advertisements.length > 0 ? "No advertisements match your search." : "No ads are tracked yet. Ads will appear when a new player enters a video's redeem code."}
             </p>
           ) : (
             <Table>
@@ -164,8 +173,8 @@ function Advertisements() {
                   {data.availableGamemodes.filter((group) => gamemode === "all").map((group) => (
                     <TableHead key={group} className="text-right">{gamemodeStyle(group).label}</TableHead>
                   ))}
-                  <TableHead className="text-right">Share</TableHead>
-                  <TableHead className="text-right">Lifetime</TableHead>
+                  <TableHead className="text-right">Share of new players</TableHead>
+                  <TableHead className="text-right">All time</TableHead>
                   <TableHead>Uploaded</TableHead>
                   <TableHead><span className="sr-only">Video link</span></TableHead>
                 </TableRow>
@@ -193,7 +202,7 @@ function Advertisements() {
                       {data.attributedPlayers > 0 ? `${(advertisement.players / data.attributedPlayers * 100).toFixed(1)}%` : "—"}
                     </TableCell>
                     <TableCell className="text-right font-mono">{advertisement.lifetimePlayers.toLocaleString()}</TableCell>
-                    <TableCell className="text-xs"><Timestamp value={advertisement.publishedAt} /></TableCell>
+                    <TableCell className="text-xs"><Timestamp value={advertisement.publishedAt} timeZone={timeZone} /></TableCell>
                     <TableCell>
                       <Button asChild variant="ghost" size="icon">
                         <a href={advertisement.videoUrl} target="_blank" rel="noopener noreferrer" aria-label={`Watch ${advertisement.title}`}><ExternalLink size={14} /></a>
@@ -231,7 +240,7 @@ function OverviewChart({ data }: { data: AdvertisementStatistics }) {
         <CartesianGrid vertical={false} />
         <XAxis dataKey="date" tickFormatter={shortDate} tickLine={false} axisLine={false} minTickGap={32} />
         <YAxis width={38} allowDecimals={false} tickLine={false} axisLine={false} />
-        <ChartTooltip content={<ChartTooltipContent labelFormatter={(label) => `${label} (UTC)`} formatter={(value, name) => tooltipFormatter(value, gamemodeStyle(String(name)).label)} />} />
+        <ChartTooltip content={<ChartTooltipContent labelFormatter={(label) => `${label} (${data.timeZone})`} formatter={(value, name) => tooltipFormatter(value, gamemodeStyle(String(name)).label)} />} />
         {groups.map((group) => (
           <Area key={group} dataKey={group} type="linear" stackId="players" stroke={`var(--color-${group})`} fill={`var(--color-${group})`} fillOpacity={0.15} strokeWidth={2} dot={false} isAnimationActive={false} />
         ))}
@@ -244,7 +253,7 @@ function OverviewChart({ data }: { data: AdvertisementStatistics }) {
 function AdvertisementTrend({ advertisement, data }: { advertisement: Advertisement; data: AdvertisementStatistics }) {
   const counts = new Map(advertisement.series.map((point) => [point.date, point.count]));
   const points = data.series.map((point) => ({ date: point.date, players: counts.get(point.date) ?? 0 }));
-  const publishedDay = advertisement.publishedAt.slice(0, 10);
+  const publishedDay = advertisementDate(advertisement.publishedAt, data.timeZone);
   const peak = advertisement.series.reduce<{ date: string; count: number } | null>((best, point) => !best || point.count > best.count ? point : best, null);
   return (
     <div className="space-y-3">
@@ -252,7 +261,7 @@ function AdvertisementTrend({ advertisement, data }: { advertisement: Advertisem
         <div className="min-w-0">
           <p className="text-xs font-mono text-primary">{advertisement.code}</p>
           <p className="text-sm truncate" title={advertisement.title}>{advertisement.title}</p>
-          <p className="text-[10px] text-muted-foreground mt-1">Uploaded <Timestamp value={advertisement.publishedAt} /></p>
+          <p className="text-[10px] text-muted-foreground mt-1">Uploaded <Timestamp value={advertisement.publishedAt} timeZone={data.timeZone} /></p>
         </div>
         <Button asChild variant="outline" size="sm">
           <a href={advertisement.videoUrl} target="_blank" rel="noopener noreferrer">Watch <ExternalLink size={12} /></a>
@@ -263,14 +272,14 @@ function AdvertisementTrend({ advertisement, data }: { advertisement: Advertisem
           <CartesianGrid vertical={false} />
           <XAxis dataKey="date" tickFormatter={shortDate} tickLine={false} axisLine={false} minTickGap={32} />
           <YAxis width={38} allowDecimals={false} tickLine={false} axisLine={false} />
-          <ChartTooltip content={<ChartTooltipContent labelFormatter={(label) => `${label} (UTC)`} />} />
+          <ChartTooltip content={<ChartTooltipContent labelFormatter={(label) => `${label} (${data.timeZone})`} />} />
           <Area dataKey="players" type="linear" stroke="var(--color-players)" fill="var(--color-players)" fillOpacity={0.15} strokeWidth={2} dot={false} isAnimationActive={false} />
           {publishedDay >= data.from && publishedDay <= data.through && <ReferenceLine x={publishedDay} stroke="var(--muted-foreground)" strokeDasharray="4 4" label={{ value: "Uploaded", position: "insideTopRight", fontSize: 10, fill: "var(--muted-foreground)" }} />}
         </AreaChart>
       </ChartContainer>
       <p className="text-xs text-muted-foreground">
-        {(advertisement.players / data.days).toFixed(1)} players/day in this window
-        {peak && ` · Best day: ${peak.count.toLocaleString()} on ${shortDate(peak.date)} (UTC)`}
+        {(advertisement.players / data.days).toFixed(1)} new players per day on average
+        {peak && ` · Best day: ${peak.count.toLocaleString()} on ${shortDate(peak.date)} (${data.timeZone})`}
       </p>
     </div>
   );
