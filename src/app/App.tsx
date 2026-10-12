@@ -17,6 +17,7 @@ import {PunishmentsTab} from "./tabs/PunishmentsTab";
 import {ChatTab} from "./tabs/ChatTab";
 import {MotdTab} from "./tabs/MotdTab";
 import {StatisticsTab} from "./tabs/StatisticsTab";
+import {AdvertisementsTab} from "./tabs/AdvertisementsTab";
 import {TicketsTab} from "./tabs/TicketsTab";
 import {TicketDetail} from "./tabs/tickets/TicketDetail";
 import {ServerMetricsTab} from "./tabs/ServerMetricsTab";
@@ -117,6 +118,7 @@ export default function App() {
               <Route path="/tickets" element={<TicketsTab />} />
               <Route path="/tickets/:channelSnowflake" element={<TicketDetail />} />
               <Route path="/statistics" element={<StatisticsTab />} />
+              <Route path="/statistics/advertisements" element={<AdvertisementsTab />} />
               <Route path="/motd" element={<MotdTab />} />
               <Route path="/server-metrics" element={<ServerMetricsTab />} />
               <Route path="/server-metrics/:group" element={<ServerGroupDetail />} />

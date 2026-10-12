@@ -34,6 +34,7 @@ import {
   ChartTooltipContent,
 } from "../components/ui/chart";
 import {FilterSelect} from "../components/FilterSelect";
+import {AdvertisementSummary} from "../components/AdvertisementSummary";
 import {PlayerAvatar} from "../components/PlayerAvatar";
 import {PlayerLink} from "../components/PlayerLink";
 import {
@@ -200,6 +201,8 @@ function Statistics() {
           </CardContent>
         </Card>
       </div>
+
+      <AdvertisementSummary days={days} />
 
       {/* Sessions */}
       <SectionHeading icon={<Clock size={14} />} title="Sessions" />

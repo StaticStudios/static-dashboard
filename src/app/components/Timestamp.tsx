@@ -3,20 +3,21 @@ import { SimpleTooltip } from "./SimpleTooltip";
 import { cn } from "../../lib/utils";
 
 /**
- * The single date/time format used across the dashboard: absolute, in the viewer's own timezone,
+ * The single date/time format used across the dashboard: absolute, in the viewer's timezone by default,
  * with the full value — including seconds and the zone name — revealed on hover.
  *
  * Every timestamp the API returns is an ISO-8601 instant with an offset, so `new Date()` resolves it
  * unambiguously. A value without an offset would be read as browser-local and silently shift, which is
  * why the API sends `Instant` rather than `LocalDateTime` on the wire.
  */
-const SHORT = new Intl.DateTimeFormat(undefined, {
+const SHORT_OPTIONS: Intl.DateTimeFormatOptions = {
   year: "numeric",
   month: "short",
   day: "numeric",
   hour: "numeric",
   minute: "2-digit",
-});
+};
+const SHORT = new Intl.DateTimeFormat(undefined, SHORT_OPTIONS);
 
 const FULL = new Intl.DateTimeFormat(undefined, {
   dateStyle: "full",
@@ -61,11 +62,14 @@ export function Timestamp({
   value,
   fallback = "—",
   className,
+  timeZone,
 }: {
   value: string | number | Date | null | undefined;
   /** Rendered in place of the date when there is nothing to show, e.g. "Still open" or "Never". */
   fallback?: ReactNode;
   className?: string;
+  /** Defaults to the viewer's zone; views with a zone picker can override it. */
+  timeZone?: string;
 }) {
   const base = "font-mono text-muted-foreground whitespace-nowrap tabular-nums";
 
@@ -78,10 +82,15 @@ export function Timestamp({
     return <span className={cn(base, className)}>{fallback}</span>;
   }
 
+  const shortFormatter = timeZone ? new Intl.DateTimeFormat(undefined, { ...SHORT_OPTIONS, timeZone }) : SHORT;
+  const fullFormatter = timeZone
+    ? new Intl.DateTimeFormat(undefined, { dateStyle: "full", timeStyle: "long", timeZone })
+    : FULL;
+
   return (
-    <SimpleTooltip content={FULL.format(date)}>
+    <SimpleTooltip content={fullFormatter.format(date)}>
       <time dateTime={date.toISOString()} className={cn(base, "cursor-default", className)}>
-        {SHORT.format(date)}
+        {shortFormatter.format(date)}
       </time>
     </SimpleTooltip>
   );
